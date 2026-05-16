@@ -998,11 +998,11 @@
       boss.timer += 1;
       if (boss.kind === "sentinel") {
         boss.dy = 0;
-        if (boss.timer % 5 === 0) boss.dx *= -1;
-        if (boss.timer % 4 === 0) {
-          const axis = boss.timer % 8 === 0 ? "x" : "y";
+        if (boss.timer % 6 === 0) boss.dx *= -1;
+        if (boss.timer % 6 === 0) {
+          const axis = boss.timer % 12 === 0 ? "x" : "y";
           bossScans = bossScans.filter((scan) => scan.warn <= 0);
-          queueBossScan(axis, axis === "x" ? player.x : player.y, 46, 14);
+          queueBossScan(axis, axis === "x" ? player.x : player.y, 76, 10);
         }
       }
       if (boss.kind === "ace") {
