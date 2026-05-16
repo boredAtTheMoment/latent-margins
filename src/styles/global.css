@@ -1388,12 +1388,12 @@ a:hover {
   inset: 4px;
   width: auto;
   height: auto;
-  border: 2px solid rgba(255, 255, 255, 0.92);
+  border: 2px solid color-mix(in srgb, currentColor 72%, #1d211c);
   border-radius: 50%;
   background: currentColor;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, currentColor 72%, #1d211c),
-    0 0 0 9px color-mix(in srgb, currentColor 13%, transparent);
+    0 0 0 2px #ffffff,
+    0 0 0 9px color-mix(in srgb, currentColor 12%, transparent);
   clip-path: none;
 }
 
@@ -1408,24 +1408,24 @@ a:hover {
 }
 
 .power-guide .sprite-token {
-  border-radius: 7px;
-  background: color-mix(in srgb, currentColor 10%, #ffffff);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
 }
 
 .power-guide .sprite-token::before {
-  inset: 7px;
+  inset: 5px;
   width: auto;
   height: auto;
-  border: 2px solid currentColor;
-  border-radius: 5px;
+  border: 3px solid currentColor;
+  border-radius: 50%;
   background: transparent;
-  box-shadow: none;
+  box-shadow: 0 0 0 3px #ffffff;
   clip-path: none;
 }
 
 .power-guide .sprite-token::after {
-  inset: 12px;
+  inset: 11px;
   width: auto;
   height: auto;
   border-radius: 999px;
@@ -1434,14 +1434,13 @@ a:hover {
   clip-path: none;
 }
 
-.sprite-drift::after {
+.enemy-guide .sprite-drift::after {
   inset: 11px;
   width: auto;
   border-radius: 50%;
 }
 
 .sprite-batch,
-.sprite-replay,
 .sprite-beacon {
   color: #c47718;
 }
@@ -1451,12 +1450,13 @@ a:hover {
 }
 
 .sprite-outlier,
-.sprite-probe {
+.sprite-regularizer {
   color: #0f8ac0;
 }
 
 .sprite-entropy,
-.sprite-regularizer {
+.sprite-probe,
+.sprite-replay {
   color: #7a4fb3;
 }
 
@@ -1474,10 +1474,10 @@ a:hover {
   color: #148f68;
 }
 
-.sprite-outlier::before {
+.enemy-guide .sprite-outlier::before {
   box-shadow:
-    0 0 0 1px color-mix(in srgb, currentColor 72%, #1d211c),
-    0 0 0 9px color-mix(in srgb, currentColor 13%, transparent),
+    0 0 0 2px #ffffff,
+    0 0 0 9px color-mix(in srgb, currentColor 12%, transparent),
     0 0 0 15px color-mix(in srgb, currentColor 7%, transparent);
 }
 
@@ -1485,20 +1485,20 @@ a:hover {
   border-style: dashed;
 }
 
-.sprite-overfit::after {
+.enemy-guide .sprite-overfit::after {
   inset: 11px 8px;
   width: auto;
   height: 2px;
   border-radius: 999px;
 }
 
-.sprite-leak::after {
+.enemy-guide .sprite-leak::after {
   inset: 8px 11px 15px;
   border-radius: 8px 8px 12px 12px;
 }
 
-.sprite-batch::after {
-  inset: 8px 7px auto;
+.power-guide .sprite-batch::after {
+  inset: 8px 5px auto;
   height: 2px;
   border-radius: 0;
   box-shadow:
@@ -1506,33 +1506,44 @@ a:hover {
     0 10px 0 currentColor;
 }
 
-.sprite-regularizer::after {
-  inset: 8px;
-  border: 2px solid currentColor;
-  background: transparent;
+.power-guide .sprite-regularizer::after {
+  inset: 6px;
+  width: auto;
+  border-radius: 0;
+  background-color: transparent;
+  background-image:
+    linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size:
+    4px 16px,
+    16px 4px;
+  box-shadow: none;
 }
 
-.sprite-probe::before {
-  border-radius: 50% 50% 50% 8px;
-  transform: rotate(45deg);
+.power-guide .sprite-probe::before {
+  border-radius: 50%;
+  transform: none;
 }
 
-.sprite-probe::after {
+.power-guide .sprite-probe::after {
   border-radius: 50%;
 }
 
-.sprite-replay::before {
+.power-guide .sprite-replay::before {
   border-right-color: transparent;
   border-radius: 50%;
 }
 
-.sprite-beacon::after {
-  inset: 5px 13px;
-  width: 2px;
-  border-radius: 0;
-  box-shadow:
-    -6px 13px 0 currentColor,
-    6px 13px 0 currentColor;
+.power-guide .sprite-replay::after {
+  display: none;
+}
+
+.power-guide .sprite-beacon::after {
+  inset: 11px;
+  width: auto;
+  border-radius: 50%;
+  box-shadow: none;
 }
 
 .boss-guide {
