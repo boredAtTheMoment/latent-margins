@@ -870,6 +870,19 @@
       boss.timer += 1;
       if (boss.kind === "sentinel") {
         if (boss.timer % 4 === 0) boss.dx *= -1;
+        if (boss.timer % 3 === 0) {
+          const scanX = Math.round(boss.x);
+          const scanY = Math.round(boss.y + boss.size / 2);
+          for (const offset of [-2, 0, 2]) {
+            residues.push({
+              x: Math.max(0, Math.min(boardWidth - 1, scanX)),
+              y: wrap(scanY + offset, boardHeight),
+              life: 170
+            });
+          }
+          residues = residues.slice(-80);
+          message = "Sentinel scan";
+        }
       }
       if (boss.kind === "ace") {
         if (boss.timer % 5 === 0) {
@@ -1337,9 +1350,9 @@
 
     function drawGame(time = 0) {
       const background = gameCtx.createLinearGradient(0, 0, game.width, game.height);
-      background.addColorStop(0, "#fbfaf7");
-      background.addColorStop(0.52, "#f2f6f2");
-      background.addColorStop(1, "#f8f1ea");
+      background.addColorStop(0, "#ffffff");
+      background.addColorStop(0.52, "#ffffff");
+      background.addColorStop(1, "#ffffff");
       gameCtx.fillStyle = background;
       gameCtx.fillRect(0, 0, game.width, game.height);
       gameCtx.save();
@@ -1405,7 +1418,7 @@
       gameCtx.restore();
       drawFlashOverlay();
       if (gameOver) {
-        gameCtx.fillStyle = "rgba(251, 250, 247, 0.88)";
+        gameCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
         gameCtx.fillRect(0, 0, game.width, game.height);
         gameCtx.fillStyle = runWon ? "#148f68" : "#b84a62";
         gameCtx.font = "600 28px Georgia, serif";

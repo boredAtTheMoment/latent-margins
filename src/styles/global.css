@@ -1155,9 +1155,20 @@ a:hover {
 
 /* Margin Runner: light scientific instrument skin. */
 .game-page {
+  position: relative;
   gap: 28px;
   width: min(100vw - 48px, 1360px);
   padding-top: 48px;
+}
+
+.game-page::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0 50%;
+  width: 100vw;
+  background: #ffffff;
+  content: "";
+  transform: translateX(-50%);
 }
 
 .game-page-header {
@@ -1254,7 +1265,7 @@ a:hover {
 .game-canvas {
   border: 1px solid var(--line-strong);
   border-radius: 4px;
-  background: #fbfaf7;
+  background: #ffffff;
   image-rendering: auto;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.55),
