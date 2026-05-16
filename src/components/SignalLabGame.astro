@@ -148,7 +148,7 @@
       <div>
         <span class="boss-token boss-token-sentinel"></span>
         <strong>10</strong>
-        <small>Scan line</small>
+        <small>Slow scan</small>
       </div>
       <div>
         <span class="boss-token boss-token-ace"></span>
@@ -383,7 +383,7 @@
 
     function bossSpec(milestone: number) {
       const roster: Record<number, { kind: BossKind; name: string; hp: number; size: number }> = {
-        10: { kind: "sentinel", name: "Null Sentinel", hp: 7, size: 2.1 },
+        10: { kind: "sentinel", name: "Null Sentinel", hp: 5, size: 1.9 },
         20: { kind: "ace", name: "Outlier Ace", hp: 9, size: 2.25 },
         30: { kind: "bloom", name: "Entropy Bloom", hp: 11, size: 2.4 },
         40: { kind: "mirror", name: "Mirror Fitter", hp: 13, size: 2.5 },
@@ -990,12 +990,12 @@
       updateHud();
     }
 
-    function queueBossScan(axis: "x" | "y", position: number) {
+    function queueBossScan(axis: "x" | "y", position: number, warn = 34, life = 20) {
       bossScans.push({
         axis,
         position: Math.round(position),
-        warn: 34,
-        life: 20,
+        warn,
+        life,
         hit: false
       });
       bossScans = bossScans.slice(-5);
@@ -1006,10 +1006,12 @@
       if (!boss) return;
       boss.timer += 1;
       if (boss.kind === "sentinel") {
-        if (boss.timer % 4 === 0) boss.dx *= -1;
-        if (boss.timer % 2 === 0) {
-          const axis = boss.timer % 4 === 0 ? "x" : "y";
-          queueBossScan(axis, axis === "x" ? player.x : player.y);
+        boss.dy = 0;
+        if (boss.timer % 5 === 0) boss.dx *= -1;
+        if (boss.timer % 4 === 0) {
+          const axis = boss.timer % 8 === 0 ? "x" : "y";
+          bossScans = bossScans.filter((scan) => scan.warn <= 0);
+          queueBossScan(axis, axis === "x" ? player.x : player.y, 46, 14);
         }
       }
       if (boss.kind === "ace") {
