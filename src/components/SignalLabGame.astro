@@ -1183,15 +1183,14 @@
       const dirY = lastDirection.dy || 0;
       const perpX = -dirY;
       const perpY = dirX;
-      const nose = tile * 0.54 * pulse;
-      const wing = tile * 0.33;
-      const tail = tile * 0.31;
-      const inset = tile * 0.04;
+      const nose = tile * 0.46 * pulse;
+      const wing = tile * 0.34;
+      const tail = tile * 0.46 * pulse;
       const probe = [
         { x: x + dirX * nose, y: y + dirY * nose },
-        { x: x + perpX * wing - dirX * inset, y: y + perpY * wing - dirY * inset },
+        { x: x + perpX * wing, y: y + perpY * wing },
         { x: x - dirX * tail, y: y - dirY * tail },
-        { x: x - perpX * wing - dirX * inset, y: y - perpY * wing - dirY * inset }
+        { x: x - perpX * wing, y: y - perpY * wing }
       ];
 
       const traceProbe = () => {
