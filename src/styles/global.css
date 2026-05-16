@@ -1529,26 +1529,26 @@ a:hover {
 }
 
 .sprite-drift {
-  color: #b88716;
+  color: #f0a51f;
 }
 
 .sprite-outlier,
 .sprite-regularizer {
-  color: #0f8ac0;
+  color: #16a7df;
 }
 
 .sprite-entropy,
 .sprite-probe,
 .sprite-replay {
-  color: #7a4fb3;
+  color: #9862df;
 }
 
 .sprite-overfit {
-  color: #c83c5a;
+  color: #e84f72;
 }
 
 .sprite-leak {
-  color: #d66f1f;
+  color: #f47a2a;
 }
 
 .sprite-filter,

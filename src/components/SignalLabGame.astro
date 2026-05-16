@@ -282,11 +282,11 @@
       color: string;
     };
     const enemyPalette: Record<EnemyKind, { color: string; glow: string; accent: string }> = {
-      drift: { color: "#b88716", glow: "rgba(184, 135, 22, 0.16)", accent: "#76570f" },
-      outlier: { color: "#0f8ac0", glow: "rgba(15, 138, 192, 0.18)", accent: "#0b5f86" },
-      entropy: { color: "#7a4fb3", glow: "rgba(122, 79, 179, 0.17)", accent: "#56357f" },
-      overfit: { color: "#c83c5a", glow: "rgba(200, 60, 90, 0.17)", accent: "#8e2c41" },
-      leak: { color: "#d66f1f", glow: "rgba(214, 111, 31, 0.16)", accent: "#974b17" }
+      drift: { color: "#f0a51f", glow: "rgba(240, 165, 31, 0.22)", accent: "#a86608" },
+      outlier: { color: "#16a7df", glow: "rgba(22, 167, 223, 0.22)", accent: "#0873a6" },
+      entropy: { color: "#9862df", glow: "rgba(152, 98, 223, 0.22)", accent: "#6840a8" },
+      overfit: { color: "#e84f72", glow: "rgba(232, 79, 114, 0.22)", accent: "#a92c48" },
+      leak: { color: "#f47a2a", glow: "rgba(244, 122, 42, 0.22)", accent: "#a94b12" }
     };
     const bossPalette: Record<BossKind, { color: string; glow: string; accent: string }> = {
       sentinel: { color: "#c47718", glow: "rgba(196, 119, 24, 0.24)", accent: "#8a5a18" },
@@ -1298,7 +1298,7 @@
       const x = cx(hx);
       const y = cy(hy);
       const pulse = 1 + Math.sin(time / 260 + hazard.timer) * 0.12;
-      drawFieldHalo(x, y, palette.color, tile * 0.86, 0.08);
+      drawFieldHalo(x, y, palette.color, tile * 0.98, 0.12);
       if (hazard.kind === "overfit" && hazard.target) {
         drawDottedLine(x, y, cx(hazard.target.x), cy(hazard.target.y), "rgba(184, 74, 98, 0.32)");
       }
@@ -1319,7 +1319,7 @@
       gameCtx.fill();
       gameCtx.strokeStyle = palette.accent;
       gameCtx.fillStyle = palette.color;
-      gameCtx.lineWidth = 2;
+      gameCtx.lineWidth = 1.5;
       gameCtx.beginPath();
       gameCtx.arc(x, y, enemyRadius, 0, Math.PI * 2);
       gameCtx.fill();
