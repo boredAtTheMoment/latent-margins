@@ -148,7 +148,7 @@
       <div>
         <span class="boss-token boss-token-sentinel"></span>
         <strong>10</strong>
-        <small>Sentinel scan</small>
+        <small>Scan line</small>
       </div>
       <div>
         <span class="boss-token boss-token-ace"></span>
@@ -259,6 +259,13 @@
       kind: WeaponKind;
     };
     type Wave = { x: number; y: number; radius: number; life: number; maxRadius: number };
+    type BossScan = {
+      axis: "x" | "y";
+      position: number;
+      warn: number;
+      life: number;
+      hit: boolean;
+    };
     type FloatingText = {
       x: number;
       y: number;
@@ -310,6 +317,7 @@
     let powerUp: PowerUp | null = null;
     let projectiles: Array<Projectile> = [];
     let waves: Array<Wave> = [];
+    let bossScans: Array<BossScan> = [];
     let decoySignals: Array<Cell & { life: number }> = [];
     let hazards: Array<Enemy> = [];
     let residues: Array<Cell & { life: number }> = [];
@@ -476,6 +484,7 @@
       decoySignals = [];
       projectiles = [];
       waves = [];
+      bossScans = [];
       powerUp = null;
       boss = {
         x: Math.floor(boardWidth * 0.72),
@@ -692,6 +701,7 @@
       pathDots = [];
       projectiles = [];
       waves = [];
+      bossScans = [];
       playerTrail = [];
       heldDirections = [];
       heldShoot = false;
@@ -937,6 +947,7 @@
       kills += 1;
       projectiles = [];
       waves = [];
+      bossScans = [];
       residues = [];
       burst(defeated.x, defeated.y, bossPalette[defeated.kind].color, isFinal ? 86 : 56);
       alertPlayer(`${defeated.name.toUpperCase()} DOWN`, bossPalette[defeated.kind].color, 12);
@@ -954,23 +965,26 @@
       updateHud();
     }
 
+    function queueBossScan(axis: "x" | "y", position: number) {
+      bossScans.push({
+        axis,
+        position: Math.round(position),
+        warn: 34,
+        life: 20,
+        hit: false
+      });
+      bossScans = bossScans.slice(-5);
+      message = axis === "x" ? "Column scan" : "Row scan";
+    }
+
     function moveBoss() {
       if (!boss) return;
       boss.timer += 1;
       if (boss.kind === "sentinel") {
         if (boss.timer % 4 === 0) boss.dx *= -1;
-        if (boss.timer % 3 === 0) {
-          const scanX = Math.round(boss.x);
-          const scanY = Math.round(boss.y + boss.size / 2);
-          for (const offset of [-2, 0, 2]) {
-            residues.push({
-              x: Math.max(0, Math.min(boardWidth - 1, scanX)),
-              y: wrap(scanY + offset, boardHeight),
-              life: 170
-            });
-          }
-          residues = residues.slice(-80);
-          message = "Sentinel scan";
+        if (boss.timer % 2 === 0) {
+          const axis = boss.timer % 4 === 0 ? "x" : "y";
+          queueBossScan(axis, axis === "x" ? player.x : player.y);
         }
       }
       if (boss.kind === "ace") {
@@ -1161,6 +1175,30 @@
       }
       gameCtx.lineWidth = 1;
       gameCtx.globalAlpha = 1;
+    }
+
+    function drawBossScans() {
+      for (const scan of bossScans) {
+        const warning = scan.warn > 0;
+        const alpha = warning ? 0.18 + (Math.sin(tick / 3) + 1) * 0.06 : 0.34;
+        const position = scan.position * tile + tile / 2;
+
+        gameCtx.save();
+        gameCtx.globalAlpha = alpha;
+        gameCtx.strokeStyle = warning ? "#c47718" : "#b84a62";
+        gameCtx.lineWidth = warning ? 2 : 7;
+        if (warning) gameCtx.setLineDash([10, 8]);
+        gameCtx.beginPath();
+        if (scan.axis === "x") {
+          gameCtx.moveTo(position, 10);
+          gameCtx.lineTo(position, game.height - 10);
+        } else {
+          gameCtx.moveTo(10, position);
+          gameCtx.lineTo(game.width - 10, position);
+        }
+        gameCtx.stroke();
+        gameCtx.restore();
+      }
     }
 
     function drawOrbitGuard(time: number) {
@@ -1477,6 +1515,7 @@
       if (!boss) drawSignal(time);
       if (!boss) drawDecoys();
       drawWaves();
+      drawBossScans();
       if (!boss) drawPowerUp(time);
       drawResidues();
       for (const hazard of hazards) drawHazard(hazard, time);
@@ -1601,6 +1640,25 @@
           life: wave.life - 1
         }))
         .filter((wave) => wave.life > 0);
+      bossScans = bossScans
+        .map((scan) =>
+          scan.warn > 0 ? { ...scan, warn: scan.warn - 1 } : { ...scan, life: scan.life - 1 }
+        )
+        .filter((scan) => scan.warn > 0 || scan.life > 0);
+      for (const scan of bossScans) {
+        if (scan.warn > 0 || scan.hit || gameOver) continue;
+        const isHit = scan.axis === "x" ? player.x === scan.position : player.y === scan.position;
+        if (!isHit) continue;
+        scan.hit = true;
+        if (!avoidHit()) {
+          gameOver = true;
+          runWon = false;
+          message = "Sentinel scan hit";
+          burst(player.x, player.y, "#c7353f", 34);
+          alertPlayer("scan hit", "#c7353f", 18);
+          updateHud();
+        }
+      }
       if (orbitTicks > 0 && tick % 10 === 0) {
         if (boss && bossDistance(player) <= boss.size / 2 + 1.2) damageBoss(1, "#8f65b8");
         for (let index = hazards.length - 1; index >= 0; index -= 1) {
