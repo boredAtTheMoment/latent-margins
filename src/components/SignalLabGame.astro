@@ -261,6 +261,7 @@
       dx: number;
       dy: number;
       life: number;
+      maxLife: number;
       damage: number;
       kind: WeaponKind;
     };
@@ -884,15 +885,60 @@
     }
 
     function fireProjectile(dx: number, dy: number, kind: WeaponKind, damage: number) {
+      const life = kind === "splitter" ? 30 : 26;
       projectiles.push({
         x: player.x + 0.5,
         y: player.y + 0.5,
         dx,
         dy,
-        life: kind === "beam" ? 44 : 32,
+        life,
+        maxLife: life,
         damage,
         kind
       });
+    }
+
+    function fireBeam(dx: number, dy: number) {
+      projectiles.push({
+        x: player.x + 0.5,
+        y: player.y + 0.5,
+        dx,
+        dy,
+        life: 12,
+        maxLife: 12,
+        damage: 0,
+        kind: "beam"
+      });
+
+      const startX = player.x + 0.5;
+      const startY = player.y + 0.5;
+      for (let index = hazards.length - 1; index >= 0; index -= 1) {
+        const hazard = hazards[index];
+        if (!hazard) continue;
+        const targetX = hazard.x + 0.5;
+        const targetY = hazard.y + 0.5;
+        const inLane =
+          dx !== 0
+            ? Math.abs(targetY - startY) <= 0.48 && Math.sign(targetX - startX) === dx
+            : Math.abs(targetX - startX) <= 0.48 && Math.sign(targetY - startY) === dy;
+        if (inLane) damageEnemy(index, 2, "#0f8ac0");
+      }
+
+      if (boss) {
+        const bossLeft = boss.x;
+        const bossRight = boss.x + boss.size;
+        const bossTop = boss.y;
+        const bossBottom = boss.y + boss.size;
+        const hitsBoss =
+          dx > 0
+            ? bossRight >= startX && startY >= bossTop && startY <= bossBottom
+            : dx < 0
+              ? bossLeft <= startX && startY >= bossTop && startY <= bossBottom
+              : dy > 0
+                ? bossBottom >= startY && startX >= bossLeft && startX <= bossRight
+                : bossTop <= startY && startX >= bossLeft && startX <= bossRight;
+        if (hitsBoss) damageBoss(3, "#0f8ac0");
+      }
     }
 
     function useShoot() {
@@ -909,8 +955,8 @@
         }
         shotCooldown = 13;
       } else if (weapon === "beam") {
-        fireProjectile(dx, dy, "beam", 2);
-        shotCooldown = 20;
+        fireBeam(dx, dy);
+        shotCooldown = 24;
       } else {
         fireProjectile(dx, dy, "bolt", 1);
         shotCooldown = 11;
@@ -1190,23 +1236,64 @@
       for (const projectile of projectiles) {
         const color =
           projectile.kind === "beam"
-            ? "#1f8fc7"
+            ? "#0f8ac0"
             : projectile.kind === "splitter"
               ? "#c47718"
               : "#148f68";
         const pxX = projectile.x * tile;
         const pxY = projectile.y * tile;
+        const alpha = Math.max(0, projectile.life / projectile.maxLife);
+        gameCtx.save();
         if (projectile.kind === "beam") {
-          gameCtx.strokeStyle = color;
-          gameCtx.lineWidth = 3;
+          const endX = projectile.dx > 0 ? canvasWidth - 10 : projectile.dx < 0 ? 10 : pxX;
+          const endY = projectile.dy > 0 ? canvasHeight - 10 : projectile.dy < 0 ? 10 : pxY;
+          gameCtx.globalAlpha = 0.2 + alpha * 0.36;
+          gameCtx.strokeStyle = "rgba(15, 138, 192, 0.34)";
+          gameCtx.lineWidth = 18;
+          gameCtx.lineCap = "round";
           gameCtx.beginPath();
-          gameCtx.moveTo(pxX - 13, pxY);
-          gameCtx.lineTo(pxX + 13, pxY);
+          gameCtx.moveTo(pxX, pxY);
+          gameCtx.lineTo(endX, endY);
           gameCtx.stroke();
-          gameCtx.lineWidth = 1;
+          gameCtx.globalAlpha = 0.9;
+          gameCtx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+          gameCtx.lineWidth = 9;
+          gameCtx.beginPath();
+          gameCtx.moveTo(pxX, pxY);
+          gameCtx.lineTo(endX, endY);
+          gameCtx.stroke();
+          gameCtx.globalAlpha = 0.58 + alpha * 0.42;
+          gameCtx.strokeStyle = color;
+          gameCtx.lineWidth = 4;
+          gameCtx.beginPath();
+          gameCtx.moveTo(pxX, pxY);
+          gameCtx.lineTo(endX, endY);
+          gameCtx.stroke();
+          gameCtx.globalAlpha = 1;
+          drawObservedPoint(pxX, pxY, color, tile * 0.16 + alpha * 2, true);
         } else {
-          drawObservedPoint(pxX, pxY, color, 5, false);
+          const tail = projectile.kind === "splitter" ? tile * 0.46 : tile * 0.34;
+          const tailX = pxX - projectile.dx * tail;
+          const tailY = pxY - projectile.dy * tail;
+          gameCtx.lineCap = "round";
+          gameCtx.globalAlpha = 0.18 + alpha * 0.44;
+          gameCtx.strokeStyle = color;
+          gameCtx.lineWidth = projectile.kind === "splitter" ? 7 : 6;
+          gameCtx.beginPath();
+          gameCtx.moveTo(tailX, tailY);
+          gameCtx.lineTo(pxX, pxY);
+          gameCtx.stroke();
+          gameCtx.globalAlpha = 0.95;
+          gameCtx.strokeStyle = projectile.kind === "splitter" ? "#fff4da" : "#ecfff7";
+          gameCtx.lineWidth = projectile.kind === "splitter" ? 3 : 2.5;
+          gameCtx.beginPath();
+          gameCtx.moveTo(tailX, tailY);
+          gameCtx.lineTo(pxX, pxY);
+          gameCtx.stroke();
+          gameCtx.globalAlpha = 1;
+          drawObservedPoint(pxX, pxY, color, projectile.kind === "splitter" ? 4.5 : 4, false);
         }
+        gameCtx.restore();
       }
     }
 
@@ -1694,8 +1781,8 @@
       projectiles = projectiles
         .map((projectile) => ({
           ...projectile,
-          x: projectile.x + projectile.dx * (projectile.kind === "beam" ? 0.55 : 0.42),
-          y: projectile.y + projectile.dy * (projectile.kind === "beam" ? 0.55 : 0.42),
+          x: projectile.kind === "beam" ? projectile.x : projectile.x + projectile.dx * 0.5,
+          y: projectile.kind === "beam" ? projectile.y : projectile.y + projectile.dy * 0.5,
           life: projectile.life - 1
         }))
         .filter(
@@ -1713,13 +1800,14 @@
       ) {
         const projectile = projectiles[projectileIndex];
         if (!projectile) continue;
+        if (projectile.kind === "beam") continue;
         if (
           boss &&
           Math.abs(boss.x + boss.size / 2 - projectile.x) < boss.size / 2 + 0.35 &&
           Math.abs(boss.y + boss.size / 2 - projectile.y) < boss.size / 2 + 0.35
         ) {
-          damageBoss(projectile.damage, projectile.kind === "beam" ? "#1f8fc7" : "#c47718");
-          if (projectile.kind !== "beam") projectiles.splice(projectileIndex, 1);
+          damageBoss(projectile.damage, "#c47718");
+          projectiles.splice(projectileIndex, 1);
           continue;
         }
         const hitIndex = hazards.findIndex(
@@ -1728,12 +1816,8 @@
             Math.abs(hazard.y + 0.5 - projectile.y) < 0.48
         );
         if (hitIndex < 0) continue;
-        damageEnemy(
-          hitIndex,
-          projectile.damage,
-          projectile.kind === "beam" ? "#1f8fc7" : "#c47718"
-        );
-        if (projectile.kind !== "beam") projectiles.splice(projectileIndex, 1);
+        damageEnemy(hitIndex, projectile.damage, "#c47718");
+        projectiles.splice(projectileIndex, 1);
       }
       waves = waves
         .map((wave) => ({
