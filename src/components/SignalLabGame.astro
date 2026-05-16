@@ -1179,6 +1179,30 @@
       const x = cx(player.x);
       const y = cy(player.y);
       const pulse = 1 + Math.sin(time / 240) * 0.08;
+      const dirX = lastDirection.dx || 1;
+      const dirY = lastDirection.dy || 0;
+      const perpX = -dirY;
+      const perpY = dirX;
+      const nose = tile * 0.54 * pulse;
+      const wing = tile * 0.33;
+      const tail = tile * 0.31;
+      const inset = tile * 0.04;
+      const probe = [
+        { x: x + dirX * nose, y: y + dirY * nose },
+        { x: x + perpX * wing - dirX * inset, y: y + perpY * wing - dirY * inset },
+        { x: x - dirX * tail, y: y - dirY * tail },
+        { x: x - perpX * wing - dirX * inset, y: y - perpY * wing - dirY * inset }
+      ];
+
+      const traceProbe = () => {
+        gameCtx.beginPath();
+        gameCtx.moveTo(probe[0].x, probe[0].y);
+        for (let i = 1; i < probe.length; i += 1) {
+          gameCtx.lineTo(probe[i].x, probe[i].y);
+        }
+        gameCtx.closePath();
+      };
+
       drawFieldHalo(x, y, "rgba(20, 143, 104, 0.65)", tile * 1.05, 0.16);
       if (shields > 0) {
         gameCtx.strokeStyle = "rgba(20, 143, 104, 0.58)";
@@ -1199,8 +1223,35 @@
         gameCtx.lineWidth = 1;
         gameCtx.globalAlpha = 1;
       }
-      drawObservedPoint(x, y, "#148f68", tile * 0.34 * pulse, true);
-      drawObservedPoint(x, y, "#148f68", tile * 0.12, false);
+      gameCtx.save();
+      gameCtx.lineJoin = "round";
+      gameCtx.lineCap = "round";
+      traceProbe();
+      gameCtx.strokeStyle = "#ffffff";
+      gameCtx.lineWidth = 6;
+      gameCtx.stroke();
+      gameCtx.fillStyle = "#ffffff";
+      gameCtx.fill();
+      traceProbe();
+      gameCtx.fillStyle = "#148f68";
+      gameCtx.strokeStyle = "rgba(29, 33, 28, 0.74)";
+      gameCtx.lineWidth = 1.2;
+      gameCtx.fill();
+      gameCtx.stroke();
+      gameCtx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+      gameCtx.lineWidth = 1;
+      gameCtx.beginPath();
+      gameCtx.moveTo(x - dirX * tile * 0.1, y - dirY * tile * 0.1);
+      gameCtx.lineTo(x + dirX * tile * 0.23, y + dirY * tile * 0.23);
+      gameCtx.stroke();
+      gameCtx.fillStyle = "#ffffff";
+      gameCtx.strokeStyle = "#0e6f52";
+      gameCtx.lineWidth = 1.4;
+      gameCtx.beginPath();
+      gameCtx.arc(x + dirX * tile * 0.06, y + dirY * tile * 0.06, tile * 0.1, 0, Math.PI * 2);
+      gameCtx.fill();
+      gameCtx.stroke();
+      gameCtx.restore();
       if (orbitTicks > 0) {
         gameCtx.globalAlpha = 0.42;
         gameCtx.strokeStyle = "#8f65b8";
