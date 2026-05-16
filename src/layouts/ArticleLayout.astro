@@ -1,0 +1,247 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+type Heading = {
+  depth: number;
+  slug: string;
+  text: string;
+};
+
+type Citation = {
+  id: string;
+  title: string;
+  authors?: string;
+  year?: string | number;
+  url: string;
+};
+
+const { frontmatter, headings = [], readingTime, previousPost, nextPost } = Astro.props;
+const siteName = "Latent Margins";
+const author = frontmatter.author ?? siteName;
+const formattedDate = new Intl.DateTimeFormat("en", {
+  year: "numeric",
+  month: "long",
+  day: "numeric"
+}).format(frontmatter.pubDate);
+const citationDate = new Intl.DateTimeFormat("en", {
+  year: "numeric",
+  month: "short"
+}).format(frontmatter.pubDate);
+const updatedDate = frontmatter.updatedDate
+  ? new Intl.DateTimeFormat("en", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    }).format(frontmatter.updatedDate)
+  : null;
+const tags: string[] = frontmatter.tags ?? [];
+const citations: Citation[] = frontmatter.citations ?? [];
+const citationHeading = { depth: 2, slug: "citation", text: "Citation" };
+const tocHeadings = [
+  ...(headings as Heading[]).filter((heading) => heading.depth > 1 && heading.depth < 4),
+  citationHeading
+];
+const citationKey = `${author}${frontmatter.pubDate.getFullYear()}${frontmatter.title}`
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "")
+  .slice(0, 54);
+const articleUrl = Astro.url.href;
+const plainCitation = `${author}, "${frontmatter.title}", ${siteName}, ${citationDate}. ${articleUrl}`;
+const bibtexCitation = `@article{${citationKey},
+  author = {${author}},
+  title = {${frontmatter.title}},
+  journal = {${siteName}},
+  year = {${frontmatter.pubDate.getFullYear()}},
+  month = {${citationDate.split(" ")[0]}},
+  url = {${articleUrl}},
+}`;
+---
+
+<BaseLayout title={`${frontmatter.title} | Latent Margins`} description={frontmatter.description}>
+  <div class="article-layout">
+    {
+      tocHeadings.length ? (
+        <aside class="toc" aria-label="Table of contents">
+          <p>On this page</p>
+          <nav>
+            {tocHeadings.map((heading) => (
+              <a
+                class={`toc-depth-${heading.depth}`}
+                href={`#${heading.slug}`}
+                data-toc-link={heading.slug}
+              >
+                {heading.text}
+              </a>
+            ))}
+          </nav>
+        </aside>
+      ) : null
+    }
+    <article id="top" class="article">
+      <header>
+        <p class="eyebrow">Technical Note</p>
+        <h1>{frontmatter.title}</h1>
+        <p class="lede">{frontmatter.description}</p>
+        <div class="meta">
+          <time datetime={frontmatter.pubDate.toISOString()}>{formattedDate}</time>
+          {readingTime ? <span>{readingTime}</span> : null}
+          {updatedDate ? <span>Updated {updatedDate}</span> : null}
+        </div>
+        {
+          tags.length ? (
+            <div class="tags" aria-label="Tags">
+              {tags.map((tag) => (
+                <a class="tag" href={`/tags/#${tag}`}>
+                  {tag}
+                </a>
+              ))}
+            </div>
+          ) : null
+        }
+      </header>
+      <slot />
+      <section id="citation" class="citation-note" aria-labelledby="citation-heading">
+        <h2 id="citation-heading">Citation</h2>
+        <p>Please cite this work as:</p>
+        <pre><code>{plainCitation}</code></pre>
+        <p>Or use the BibTeX citation:</p>
+        <pre><code>{bibtexCitation}</code></pre>
+      </section>
+      <footer class="article-footer">
+        <nav class="article-bottom-nav" aria-label="Post navigation">
+          {previousPost ? <a href={`/blog/${previousPost.slug}/`}>prev</a> : <span>prev</span>}
+          <a href="#top">back to top</a>
+          {nextPost ? <a href={`/blog/${nextPost.slug}/`}>next</a> : <span>next</span>}
+        </nav>
+      </footer>
+    </article>
+    {
+      citations.length ? (
+        <aside class="citation-rail" aria-label="Citations">
+          <p>Citations</p>
+          <ol>
+            {citations.map((citation, index) => (
+              <li
+                id={`cite-${citation.id}`}
+                data-citation-entry
+                data-citation-id={citation.id}
+                data-citation-number={String(index + 1)}
+              >
+                <span class="citation-body">
+                  <a href={citation.url}>{citation.title}</a>
+                  {citation.authors || citation.year ? (
+                    <span> ({[citation.authors, citation.year].filter(Boolean).join(", ")})</span>
+                  ) : null}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </aside>
+      ) : null
+    }
+  </div>
+  <script>
+    const citationEntries = document.querySelectorAll<HTMLElement>("[data-citation-entry]");
+    const citationNumbers = new Map(
+      [...citationEntries].map((entry) => [
+        entry.dataset.citationId ?? "",
+        entry.dataset.citationNumber ?? ""
+      ])
+    );
+
+    for (const citationRef of document.querySelectorAll<HTMLAnchorElement>(".citation-ref")) {
+      const citationId = citationRef.dataset.citationId ?? "";
+      const citationNumber = citationNumbers.get(citationId);
+      if (citationNumber) {
+        citationRef.textContent = citationNumber;
+        citationRef.setAttribute("aria-label", `Citation ${citationNumber}`);
+      }
+    }
+
+    const tocLinks = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")];
+    const tocTargets = tocLinks
+      .map((link) => {
+        const id = link.dataset.tocLink ?? "";
+        const target = document.getElementById(id);
+        return target ? { id, link, target } : null;
+      })
+      .filter(Boolean) as {
+      id: string;
+      link: HTMLAnchorElement;
+      target: HTMLElement;
+    }[];
+
+    const activateTocLink = (id: string) => {
+      for (const { id: linkId, link } of tocTargets) {
+        link.classList.toggle("is-active", linkId === id);
+      }
+    };
+
+    if (tocTargets.length > 0) {
+      let tocFrame: number | null = null;
+
+      const updateActiveTocLink = () => {
+        let activeId = tocTargets[0].id;
+
+        for (const { id, target } of tocTargets) {
+          if (target.getBoundingClientRect().top <= 180) {
+            activeId = id;
+          }
+        }
+
+        activateTocLink(activeId);
+        tocFrame = null;
+      };
+
+      const requestTocUpdate = () => {
+        if (tocFrame === null) {
+          tocFrame = window.requestAnimationFrame(updateActiveTocLink);
+        }
+      };
+
+      window.addEventListener("scroll", requestTocUpdate, { passive: true });
+      window.addEventListener("hashchange", requestTocUpdate);
+      requestTocUpdate();
+    }
+
+    const diagrams = document.querySelectorAll<HTMLElement>(".mermaid");
+
+    if (diagrams.length > 0) {
+      const { default: mermaid } = await import("mermaid");
+
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "base",
+        securityLevel: "strict",
+        flowchart: {
+          curve: "basis",
+          htmlLabels: false
+        },
+        themeVariables: {
+          background: "#fbfaf7",
+          mainBkg: "#f7fbf8",
+          secondBkg: "#f4efe5",
+          tertiaryColor: "#eef6f2",
+          primaryColor: "#eef6f2",
+          primaryBorderColor: "#2f6f58",
+          primaryTextColor: "#1d211c",
+          secondaryColor: "#f4efe5",
+          secondaryBorderColor: "#a98249",
+          secondaryTextColor: "#1d211c",
+          tertiaryBorderColor: "#789c8c",
+          tertiaryTextColor: "#1d211c",
+          lineColor: "#7b8a80",
+          textColor: "#1d211c",
+          fontFamily: 'Iowan Old Style, Apple Garamond, Georgia, Cambria, "Times New Roman", serif',
+          clusterBkg: "#ffffff",
+          clusterBorder: "#d7d3c8",
+          edgeLabelBackground: "#fbfaf7",
+          noteBkgColor: "#fff8df",
+          noteBorderColor: "#d8bd72",
+          noteTextColor: "#1d211c"
+        }
+      });
+      await mermaid.run({ nodes: [...diagrams] });
+    }
+  </script>
+</BaseLayout>

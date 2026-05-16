@@ -1,0 +1,345 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { formatPostDate, publishedPosts } from "../lib/posts";
+
+const posts = publishedPosts(await getCollection("blog"));
+const latestPosts = posts.slice(0, 3);
+---
+
+<BaseLayout>
+  <main>
+    <section class="ml-hero" aria-labelledby="home-title">
+      <div class="ml-hero-copy">
+        <p class="eyebrow">Machine learning notes and code</p>
+        <h1 id="home-title">Latent Margins</h1>
+        <p class="lede">
+          A personal blog for working through machine learning ideas, paper notes, code, diagrams,
+          and the software details that make experiments easier to understand.
+        </p>
+        <div class="home-actions">
+          <a class="button-link" href="/blog/">Read the blog</a>
+          <a class="text-link" href="/about/">About me</a>
+        </div>
+      </div>
+      <div class="ml-artifact" aria-label="Animated scientific field diagram">
+        <canvas id="automata-field" class="automata-canvas" width="900" height="620"></canvas>
+      </div>
+    </section>
+
+    <section class="game-promo" aria-labelledby="game-promo-title">
+      <div>
+        <p class="eyebrow">Reading break</p>
+        <h2 id="game-promo-title">Take a break from the notes.</h2>
+        <p>
+          Play Margin Runner, a tiny browser-side game about collecting signal, dodging noise, and
+          keeping a small system alive between posts.
+        </p>
+        <a class="button-link" href="/break/">Play Margin Runner</a>
+      </div>
+      <div class="promo-board" aria-hidden="true">
+        <span class="promo-sprite promo-player"></span>
+        <span class="promo-sprite promo-signal"></span>
+        <span class="promo-sprite promo-drift"></span>
+        <span class="promo-sprite promo-entropy"></span>
+        <span class="promo-sprite promo-overfit"></span>
+        <span class="promo-trail"></span>
+      </div>
+    </section>
+
+    <section class="section-heading">
+      <p class="eyebrow">Latest</p>
+      <h2>Recent writing</h2>
+    </section>
+
+    <section class="post-list" aria-label="Latest posts">
+      {
+        latestPosts.map((post) => (
+          <article class="post-card">
+            <div class="meta">
+              <time datetime={post.data.pubDate.toISOString()}>
+                {formatPostDate(post.data.pubDate)}
+              </time>
+            </div>
+            <h2>
+              <a href={`/blog/${post.slug}/`}>{post.data.title}</a>
+            </h2>
+            <p>{post.data.description}</p>
+            <div class="tags">
+              {post.data.tags.map((tag) => (
+                <span class="tag">{tag}</span>
+              ))}
+            </div>
+          </article>
+        ))
+      }
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.querySelector<HTMLCanvasElement>("#automata-field");
+    const context = canvas?.getContext("2d");
+
+    if (canvas && context) {
+      const field = canvas;
+      const ctx = context;
+      const columns = 84;
+      const rows = 58;
+      const palette = ["#148f68", "#1f8fc7", "#c47718", "#b84a62"];
+      const glowPalette = [
+        "rgba(20, 143, 104, 0.16)",
+        "rgba(31, 143, 199, 0.14)",
+        "rgba(196, 119, 24, 0.14)",
+        "rgba(184, 74, 98, 0.13)"
+      ];
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let current = new Uint8Array(columns * rows);
+      let next = new Uint8Array(columns * rows);
+      let frame = 0;
+      let lastStep = 0;
+
+      function index(x: number, y: number) {
+        return ((y + rows) % rows) * columns + ((x + columns) % columns);
+      }
+
+      function seed() {
+        current.fill(0);
+
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < columns; x += 1) {
+            const distanceA = Math.hypot(x - columns * 0.28, y - rows * 0.42);
+            const distanceB = Math.hypot(x - columns * 0.66, y - rows * 0.52);
+            const distanceC = Math.hypot(x - columns * 0.5, y - rows * 0.22);
+            const noise = Math.sin(x * 1.7 + y * 0.9) + Math.cos(x * 0.8 - y * 1.3);
+            const active =
+              distanceA < 12 + noise * 2 || distanceB < 13 - noise * 1.7 || distanceC < 8 + noise;
+
+            if (active && Math.random() > 0.38) {
+              current[index(x, y)] = ((x + y) % palette.length) + 1;
+            }
+          }
+        }
+
+        const gliders = [
+          [12, 9],
+          [58, 14],
+          [28, 40],
+          [68, 42]
+        ];
+
+        for (const [gx, gy] of gliders) {
+          const cells = [
+            [1, 0],
+            [2, 1],
+            [0, 2],
+            [1, 2],
+            [2, 2]
+          ];
+
+          for (const [dx, dy] of cells) {
+            current[index(gx + dx, gy + dy)] = ((gx + gy) % palette.length) + 1;
+          }
+        }
+      }
+
+      function resize() {
+        const pixelRatio = window.devicePixelRatio || 1;
+        const rect = field.getBoundingClientRect();
+        field.width = Math.max(1, Math.floor(rect.width * pixelRatio));
+        field.height = Math.max(1, Math.floor(rect.height * pixelRatio));
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      }
+
+      function step() {
+        next.fill(0);
+
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < columns; x += 1) {
+            const counts = [0, 0, 0, 0];
+            let neighbors = 0;
+
+            for (let oy = -1; oy <= 1; oy += 1) {
+              for (let ox = -1; ox <= 1; ox += 1) {
+                if (ox === 0 && oy === 0) continue;
+                const state = current[index(x + ox, y + oy)];
+
+                if (state > 0) {
+                  neighbors += 1;
+                  counts[state - 1] += 1;
+                }
+              }
+            }
+
+            const state = current[index(x, y)];
+            const dominant = counts.indexOf(Math.max(...counts)) + 1;
+            const born = state === 0 && neighbors === 3;
+            const survives = state > 0 && (neighbors === 2 || neighbors === 3);
+            const wave = Math.sin((x + frame) * 0.13) + Math.cos((y - frame) * 0.11);
+            const spark = state === 0 && neighbors === 2 && wave > 1.58 && frame % 6 === 0;
+
+            if (born || survives || spark) {
+              next[index(x, y)] = state || dominant || ((x + y + frame) % palette.length) + 1;
+            }
+          }
+        }
+
+        [current, next] = [next, current];
+        frame += 1;
+
+        if (frame % 180 === 0) {
+          seed();
+        }
+      }
+
+      function draw(time = 0) {
+        if (!prefersReducedMotion && time - lastStep > 82) {
+          step();
+          lastStep = time;
+        }
+
+        const width = field.clientWidth;
+        const height = field.clientHeight;
+        const cell = Math.min(width / columns, height / rows);
+        const gridWidth = cell * columns;
+        const gridHeight = cell * rows;
+        const offsetX = (width - gridWidth) / 2;
+        const offsetY = (height - gridHeight) / 2;
+        const columnMass = new Uint16Array(columns);
+        const rowMass = new Uint16Array(rows);
+
+        const gradient = ctx.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, "#f4f1e9");
+        gradient.addColorStop(0.5, "#eef3ef");
+        gradient.addColorStop(1, "#f6efe7");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(47, 111, 88, 0.08)";
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= columns; x += 4) {
+          const px = offsetX + x * cell;
+          ctx.beginPath();
+          ctx.moveTo(px, offsetY);
+          ctx.lineTo(px, offsetY + gridHeight);
+          ctx.stroke();
+        }
+        for (let y = 0; y <= rows; y += 4) {
+          const py = offsetY + y * cell;
+          ctx.beginPath();
+          ctx.moveTo(offsetX, py);
+          ctx.lineTo(offsetX + gridWidth, py);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "rgba(29, 33, 28, 0.24)";
+        ctx.strokeRect(offsetX, offsetY, gridWidth, gridHeight);
+
+        ctx.save();
+        ctx.globalAlpha = 0.34;
+        for (let ring = 0; ring < 4; ring += 1) {
+          const cx = offsetX + gridWidth * (0.34 + ring * 0.1);
+          const cy = offsetY + gridHeight * (0.44 + Math.sin(time / 1800 + ring) * 0.06);
+          ctx.strokeStyle = ring % 2 === 0 ? "rgba(47, 111, 88, 0.28)" : "rgba(63, 127, 145, 0.22)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.ellipse(
+            cx,
+            cy,
+            gridWidth * (0.14 + ring * 0.035),
+            gridHeight * (0.09 + ring * 0.025),
+            -0.42 + ring * 0.18,
+            0,
+            Math.PI * 2
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        const gap = Math.max(1, cell * 0.22);
+        ctx.shadowBlur = cell * 0.8;
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < columns; x += 1) {
+            const state = current[index(x, y)];
+            if (state === 0) continue;
+
+            columnMass[x] += 1;
+            rowMass[y] += 1;
+
+            const pulse = 0.72 + Math.sin(time / 520 + x * 0.2 + y * 0.17) * 0.14;
+            ctx.fillStyle = palette[state - 1];
+            ctx.shadowColor = glowPalette[state - 1];
+            ctx.globalAlpha = pulse;
+            ctx.fillRect(
+              offsetX + x * cell + gap,
+              offsetY + y * cell + gap,
+              cell - gap * 2,
+              cell - gap * 2
+            );
+          }
+        }
+
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(31, 143, 199, 0.54)";
+        ctx.lineWidth = 1.75;
+        ctx.beginPath();
+        for (let point = 0; point <= 120; point += 1) {
+          const t = point / 120;
+          const x = offsetX + t * gridWidth;
+          const y =
+            offsetY +
+            gridHeight * 0.54 +
+            Math.sin(t * Math.PI * 4 + time / 900) * cell * 5 +
+            Math.cos(t * Math.PI * 7) * cell * 1.8;
+          if (point === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.72;
+        ctx.fillStyle = "rgba(20, 143, 104, 0.34)";
+        const topBase = Math.max(8, offsetY - 12);
+        for (let x = 0; x < columns; x += 2) {
+          const mass = columnMass[x] + columnMass[x + 1];
+          const barHeight = Math.min(28, mass * 1.9);
+          ctx.fillRect(offsetX + x * cell, topBase - barHeight, cell * 1.35, barHeight);
+        }
+
+        ctx.fillStyle = "rgba(31, 143, 199, 0.3)";
+        const rightBase = offsetX + gridWidth + 10;
+        for (let y = 0; y < rows; y += 2) {
+          const mass = rowMass[y] + rowMass[y + 1];
+          const barWidth = Math.min(38, mass * 2.1);
+          ctx.fillRect(rightBase, offsetY + y * cell, barWidth, cell * 1.35);
+        }
+        ctx.globalAlpha = 1;
+
+        ctx.strokeStyle = "rgba(196, 119, 24, 0.48)";
+        ctx.setLineDash([4, 7]);
+        ctx.beginPath();
+        for (let point = 0; point <= 100; point += 1) {
+          const t = point / 100;
+          const x =
+            offsetX +
+            gridWidth * (0.18 + t * 0.68 + Math.sin(t * Math.PI * 8 + time / 1200) * 0.015);
+          const y =
+            offsetY +
+            gridHeight * (0.24 + t * 0.54 + Math.cos(t * Math.PI * 5 + time / 1500) * 0.05);
+          if (point === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (!prefersReducedMotion) {
+          requestAnimationFrame(draw);
+        }
+      }
+
+      seed();
+      resize();
+      draw();
+      window.addEventListener("resize", resize);
+    }
+  </script>
+</BaseLayout>

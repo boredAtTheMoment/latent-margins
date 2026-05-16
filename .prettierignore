@@ -1,0 +1,7 @@
+node_modules/
+.venv/
+.astro/
+dist/
+.pytest_cache/
+package-lock.json
+uv.lock

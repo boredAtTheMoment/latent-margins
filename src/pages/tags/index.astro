@@ -1,0 +1,93 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatPostDate, publishedPosts, tagCounts } from "../../lib/posts";
+
+const posts = publishedPosts(await getCollection("blog"));
+const tags = tagCounts(posts);
+const slugifyTag = (tag: string) => tag.toLowerCase().replaceAll(" ", "-");
+---
+
+<BaseLayout title="Tags | Latent Margins" description="Browse posts by topic.">
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Tags</p>
+      <h1>Find writing by topic.</h1>
+      <p class="lede">
+        Search the topic list or scan by count. Tags are intentionally small and practical, so the
+        archive stays easy to browse.
+      </p>
+    </section>
+
+    <section class="tag-browser" aria-label="Tag browser">
+      <label class="search-label">
+        <span>Search tags</span>
+        <input
+          id="tag-search"
+          class="search-input"
+          type="search"
+          placeholder="Search tags..."
+          autocomplete="off"
+        />
+      </label>
+      <div class="tag-grid" data-tag-grid>
+        {
+          tags.map(({ tag, count }) => (
+            <a class="tag-card" href={`#${slugifyTag(tag)}`} data-tag={tag.toLowerCase()}>
+              <span>{tag}</span>
+              <small>
+                {count} {count === 1 ? "post" : "posts"}
+              </small>
+            </a>
+          ))
+        }
+      </div>
+      <p class="empty-state" data-empty-state hidden>No matching tags yet.</p>
+    </section>
+
+    <section class="tag-sections" aria-label="Posts by tag">
+      {
+        tags.map(({ tag }) => {
+          const taggedPosts = posts.filter((post) => post.data.tags.includes(tag));
+
+          return (
+            <section id={slugifyTag(tag)} class="tag-section">
+              <h2>{tag}</h2>
+              {taggedPosts.map((post) => (
+                <article>
+                  <time datetime={post.data.pubDate.toISOString()}>
+                    {formatPostDate(post.data.pubDate)}
+                  </time>
+                  <h3>
+                    <a href={`/blog/${post.slug}/`}>{post.data.title}</a>
+                  </h3>
+                </article>
+              ))}
+            </section>
+          );
+        })
+      }
+    </section>
+  </main>
+
+  <script>
+    const search = document.querySelector<HTMLInputElement>("#tag-search");
+    const cards = [...document.querySelectorAll<HTMLElement>("[data-tag]")];
+    const emptyState = document.querySelector<HTMLElement>("[data-empty-state]");
+
+    search?.addEventListener("input", () => {
+      const query = search.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      for (const card of cards) {
+        const matches = card.dataset.tag?.includes(query) ?? false;
+        card.hidden = !matches;
+        visibleCount += matches ? 1 : 0;
+      }
+
+      if (emptyState) {
+        emptyState.hidden = visibleCount > 0;
+      }
+    });
+  </script>
+</BaseLayout>

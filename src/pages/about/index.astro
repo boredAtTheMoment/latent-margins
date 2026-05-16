@@ -1,0 +1,38 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="About me | Latent Margins" description="About the person behind Latent Margins.">
+  <main class="profile-page">
+    <section class="profile-hero">
+      <div class="profile-copy">
+        <p class="eyebrow">About me</p>
+        <h1>I build, study, and write about software systems.</h1>
+        <p class="lede">
+          I use this site as a public notebook for technical ideas: what I am learning, what I am
+          building, and the patterns that keep showing up across code, research, and product work.
+        </p>
+      </div>
+      <figure class="profile-photo">
+        <img src="/images/karthik-shivaram-profile.jpeg" alt="Karthik Shivaram" />
+      </figure>
+    </section>
+
+    <section class="about-grid">
+      <div>
+        <h2>What I write about</h2>
+        <p>
+          Practical engineering notes, Python tooling, LLM systems, data workflows, interface
+          design, and the small implementation details that make technical work easier to reuse.
+        </p>
+      </div>
+      <div>
+        <h2>How I like to explain things</h2>
+        <p>
+          Start with the problem, show the moving pieces, make tradeoffs explicit, then leave behind
+          a working example or diagram that can be revisited later.
+        </p>
+      </div>
+    </section>
+  </main>
+</BaseLayout>

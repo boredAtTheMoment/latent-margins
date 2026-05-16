@@ -1,0 +1,38 @@
+---
+import "../styles/global.css";
+
+const {
+  title = "Latent Margins",
+  description = "A personal blog for machine learning ideas, paper notes, code, diagrams, and software details."
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="brand" href="/">Latent Margins</a>
+        <nav class="nav" aria-label="Primary navigation">
+          <a href="/about/">About me</a>
+          <a href="/resume/">Resume</a>
+          <a href="/blog/">Blog</a>
+          <a href="/tags/">Tags</a>
+          <a href="/break/">Margin Runner</a>
+          <a href="/rss.xml">RSS</a>
+        </nav>
+      </header>
+      <slot />
+      <footer class="site-footer">
+        <span>Latent Margins</span>
+        Machine learning notes, code, and diagrams.
+      </footer>
+    </div>
+  </body>
+</html>

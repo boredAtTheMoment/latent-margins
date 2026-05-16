@@ -1,0 +1,33 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { formatPostDate, publishedPosts } from "../../lib/posts";
+
+const posts = publishedPosts(await getCollection("blog"));
+---
+
+<BaseLayout title="Blog | Latent Margins" description="Technical articles and notes.">
+  <main class="blog-index-page">
+    <section class="blog-index-header">
+      <h1>Blog</h1>
+      <p>Technical notes, essays, implementation writeups, and sketches.</p>
+    </section>
+    <section class="blog-index-list" aria-label="All posts">
+      {
+        posts.map((post) => (
+          <article class="blog-index-item">
+            <time datetime={post.data.pubDate.toISOString()}>
+              {formatPostDate(post.data.pubDate)}
+            </time>
+            <div>
+              <h2>
+                <a href={`/blog/${post.slug}/`}>{post.data.title}</a>
+              </h2>
+              <p>{post.data.author ?? post.data.description}</p>
+            </div>
+          </article>
+        ))
+      }
+    </section>
+  </main>
+</BaseLayout>

@@ -1,0 +1,1617 @@
+<section class="game-page" aria-labelledby="game-title">
+  <div class="game-page-header">
+    <p class="eyebrow">Reading break</p>
+    <h1 id="game-title">Margin Runner</h1>
+    <p>
+      Guide Mira through the margin field. Collect 100 signal samples, avoid noise processes, and
+      use interventions to keep the run alive.
+    </p>
+  </div>
+
+  <div class="signal-lab">
+    <aside class="lab-console lab-console-left" aria-label="Margin Runner controls">
+      <div class="console-card">
+        <p class="console-label">System</p>
+        <h2>Mira, Field Probe</h2>
+        <p>
+          Sample signal, avoid unstable regions, and apply interventions when the margin gets noisy.
+        </p>
+      </div>
+
+      <div class="game-controls console-card" aria-label="Game controls">
+        <p class="console-label">Controls</p>
+        <button type="button" data-move="up" aria-label="Move up">W / Up</button>
+        <button type="button" data-move="left" aria-label="Move left">A / Left</button>
+        <button type="button" data-move="down" aria-label="Move down">S / Down</button>
+        <button type="button" data-move="right" aria-label="Move right">D / Right</button>
+        <button type="button" data-action="shoot" aria-label="Fire denoise weapon"
+          >Space Fire</button
+        >
+        <button type="button" data-action="special" aria-label="Use gradient wave">E Special</button
+        >
+        <button type="button" data-action="dash" aria-label="Dash">Shift Dash</button>
+        <button type="button" data-reset>Reset</button>
+      </div>
+
+      <div class="keyboard-map console-card" aria-label="Keyboard map">
+        <p class="console-label">Keyboard</p>
+        <div><kbd>WASD</kbd><span>Move Mira</span></div>
+        <div><kbd>Arrows</kbd><span>Move Mira</span></div>
+        <div><kbd>Space</kbd><span>Apply the active filter.</span></div>
+        <div><kbd>E</kbd><span>Release a stabilizing wave.</span></div>
+        <div><kbd>Shift</kbd><span>Step through one unstable region.</span></div>
+      </div>
+    </aside>
+
+    <div class="pixel-game pixel-game-large">
+      <div class="game-hud" aria-live="polite">
+        <div class="hud-primary">
+          <span class="hud-cell hud-cell-score">
+            <small>Signal</small><strong><span id="game-score">0</span>/100</strong>
+          </span>
+          <span class="hud-cell">
+            <small>Level</small><strong id="game-level">1</strong>
+          </span>
+          <span class="hud-status" id="game-state">Ready</span>
+        </div>
+        <div class="hud-tools">
+          <span><small>Filter</small><strong id="game-shields">0</strong></span>
+          <span><small>Weapon</small><strong id="game-batch">Bolt</strong></span>
+          <span><small>Kills</small><strong id="game-regularizer">0</strong></span>
+          <span><small>Fire</small><strong id="game-pulse">ready</strong></span>
+          <span><small>Special</small><strong id="game-focus">45%</strong></span>
+          <span><small>Dash</small><strong id="game-cache">ready</strong></span>
+        </div>
+      </div>
+      <canvas
+        id="signal-runner"
+        class="game-canvas"
+        width="864"
+        height="480"
+        tabindex="0"
+        aria-label="Margin Runner interactive game"></canvas>
+    </div>
+
+    <aside class="lab-console lab-console-right" aria-label="Margin Runner reference">
+      <div class="enemy-guide console-card" aria-label="Noise guide">
+        <p class="console-label">Noise Processes</p>
+        <div>
+          <span class="sprite-token sprite-drift"></span>Drift follows predictable gradients.
+        </div>
+        <div><span class="sprite-token sprite-outlier"></span>Outlier pauses, then jumps.</div>
+        <div>
+          <span class="sprite-token sprite-entropy"></span>Entropy leaves corrupt residue.
+        </div>
+        <div>
+          <span class="sprite-token sprite-overfit"></span>Overfit tracks your recent path.
+        </div>
+        <div><span class="sprite-token sprite-leak"></span>Leak steals loose signal samples.</div>
+        <p>Evaluation gates appear at 15, 30, 45, 60, 75, 90, and 100 signal.</p>
+      </div>
+
+      <div class="power-guide console-card" aria-label="Power-up guide">
+        <p class="console-label">Interventions</p>
+        <div><span class="sprite-token sprite-filter"></span>Filter absorbs one noisy contact.</div>
+        <div>
+          <span class="sprite-token sprite-batch"></span>Splitter applies forked filters.
+        </div>
+        <div>
+          <span class="sprite-token sprite-regularizer"></span>Attention beam clears noise.
+        </div>
+        <div><span class="sprite-token sprite-probe"></span>Wave cell refills stability.</div>
+        <div>
+          <span class="sprite-token sprite-replay"></span>Orbit guard protects contact.
+        </div>
+        <div><span class="sprite-token sprite-beacon"></span>Signal cache grants clean signal.</div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<script>
+  const gameCanvas = document.querySelector<HTMLCanvasElement>("#signal-runner");
+  const gameContext = gameCanvas?.getContext("2d");
+  const scoreNode = document.querySelector<HTMLElement>("#game-score");
+  const levelNode = document.querySelector<HTMLElement>("#game-level");
+  const shieldNode = document.querySelector<HTMLElement>("#game-shields");
+  const batchNode = document.querySelector<HTMLElement>("#game-batch");
+  const regularizerNode = document.querySelector<HTMLElement>("#game-regularizer");
+  const pulseNode = document.querySelector<HTMLElement>("#game-pulse");
+  const focusNode = document.querySelector<HTMLElement>("#game-focus");
+  const cacheNode = document.querySelector<HTMLElement>("#game-cache");
+  const stateNode = document.querySelector<HTMLElement>("#game-state");
+  const moveButtons = document.querySelectorAll<HTMLButtonElement>("[data-move]");
+  const actionButtons = document.querySelectorAll<HTMLButtonElement>("[data-action]");
+  const resetButton = document.querySelector<HTMLButtonElement>("[data-reset]");
+
+  if (
+    gameCanvas &&
+    gameContext &&
+    scoreNode &&
+    levelNode &&
+    shieldNode &&
+    batchNode &&
+    regularizerNode &&
+    pulseNode &&
+    focusNode &&
+    cacheNode &&
+    stateNode
+  ) {
+    const game = gameCanvas;
+    const gameCtx = gameContext;
+    const scoreValue = scoreNode;
+    const levelValue = levelNode;
+    const shieldValue = shieldNode;
+    const batchValue = batchNode;
+    const regularizerValue = regularizerNode;
+    const pulseValue = pulseNode;
+    const focusValue = focusNode;
+    const cacheValue = cacheNode;
+    const stateValue = stateNode;
+    const tile = 32;
+    const boardWidth = game.width / tile;
+    const boardHeight = game.height / tile;
+    const targetScore = 100;
+    type EnemyKind = "drift" | "outlier" | "entropy" | "overfit" | "leak" | "feedback";
+    type Enemy = {
+      x: number;
+      y: number;
+      dx: number;
+      dy: number;
+      kind: EnemyKind;
+      timer: number;
+      hp: number;
+      target?: Cell;
+    };
+    type Cell = { x: number; y: number };
+    type WeaponKind = "bolt" | "splitter" | "beam" | "orbit";
+    type PowerKind = "shield" | "splitter" | "beam" | "wave" | "orbit" | "signal";
+    type PowerUp = Cell & { kind: PowerKind };
+    type BossKind = "sentinel" | "ace" | "bloom" | "mirror" | "baron" | "engine" | "surface";
+    type Boss = {
+      x: number;
+      y: number;
+      dx: number;
+      dy: number;
+      kind: BossKind;
+      milestone: number;
+      hp: number;
+      maxHp: number;
+      size: number;
+      timer: number;
+      name: string;
+    };
+    type Projectile = {
+      x: number;
+      y: number;
+      dx: number;
+      dy: number;
+      life: number;
+      damage: number;
+      kind: WeaponKind;
+    };
+    type Wave = { x: number; y: number; radius: number; life: number; maxRadius: number };
+    type FloatingText = {
+      x: number;
+      y: number;
+      dy: number;
+      life: number;
+      total: number;
+      text: string;
+      color: string;
+    };
+    const enemyPalette: Record<EnemyKind, { color: string; glow: string; accent: string }> = {
+      drift: { color: "#c47718", glow: "rgba(196, 119, 24, 0.16)", accent: "#8a5a18" },
+      outlier: { color: "#1f8fc7", glow: "rgba(31, 143, 199, 0.18)", accent: "#155e84" },
+      entropy: { color: "#8f65b8", glow: "rgba(143, 101, 184, 0.17)", accent: "#65458b" },
+      overfit: { color: "#b84a62", glow: "rgba(184, 74, 98, 0.17)", accent: "#843346" },
+      leak: { color: "#d06c2f", glow: "rgba(208, 108, 47, 0.16)", accent: "#92451d" },
+      feedback: { color: "#c7353f", glow: "rgba(199, 53, 63, 0.2)", accent: "#8f2028" }
+    };
+    const bossPalette: Record<BossKind, { color: string; glow: string; accent: string }> = {
+      sentinel: { color: "#c47718", glow: "rgba(196, 119, 24, 0.24)", accent: "#8a5a18" },
+      ace: { color: "#1f8fc7", glow: "rgba(31, 143, 199, 0.25)", accent: "#155e84" },
+      bloom: { color: "#8f65b8", glow: "rgba(143, 101, 184, 0.25)", accent: "#65458b" },
+      mirror: { color: "#b84a62", glow: "rgba(184, 74, 98, 0.25)", accent: "#843346" },
+      baron: { color: "#d06c2f", glow: "rgba(208, 108, 47, 0.24)", accent: "#92451d" },
+      engine: { color: "#c7353f", glow: "rgba(199, 53, 63, 0.28)", accent: "#8f2028" },
+      surface: { color: "#148f68", glow: "rgba(20, 143, 104, 0.26)", accent: "#0e6349" }
+    };
+    const difficultyGrid: Array<{ counts: Record<EnemyKind, number>; delay: number }> = [
+      { counts: { drift: 3, outlier: 0, entropy: 0, overfit: 0, leak: 0, feedback: 0 }, delay: 24 },
+      { counts: { drift: 4, outlier: 1, entropy: 0, overfit: 0, leak: 0, feedback: 0 }, delay: 23 },
+      { counts: { drift: 4, outlier: 1, entropy: 1, overfit: 0, leak: 0, feedback: 0 }, delay: 22 },
+      { counts: { drift: 5, outlier: 2, entropy: 1, overfit: 1, leak: 0, feedback: 0 }, delay: 21 },
+      { counts: { drift: 5, outlier: 2, entropy: 2, overfit: 1, leak: 1, feedback: 0 }, delay: 20 },
+      { counts: { drift: 6, outlier: 3, entropy: 2, overfit: 2, leak: 1, feedback: 0 }, delay: 19 },
+      { counts: { drift: 6, outlier: 3, entropy: 3, overfit: 2, leak: 2, feedback: 0 }, delay: 18 },
+      { counts: { drift: 7, outlier: 4, entropy: 3, overfit: 3, leak: 2, feedback: 0 }, delay: 17 },
+      { counts: { drift: 7, outlier: 4, entropy: 4, overfit: 3, leak: 2, feedback: 0 }, delay: 16 },
+      { counts: { drift: 8, outlier: 5, entropy: 4, overfit: 4, leak: 3, feedback: 0 }, delay: 15 }
+    ];
+    let score = 0;
+    let bestScore = 0;
+    let shields = 0;
+    let maxShields = 3;
+    let kills = 0;
+    let weapon: WeaponKind = "bolt";
+    let weaponTicks = 0;
+    let shotCooldown = 0;
+    let specialCharge = 45;
+    let dashCooldown = 0;
+    let orbitTicks = 0;
+    let boss: Boss | null = null;
+    let completedBossGates: Array<number> = [];
+    let tick = 0;
+    let gameOver = false;
+    let runWon = false;
+    let player = { x: 5, y: Math.floor(boardHeight / 2) };
+    let signal = { x: 31, y: 12 };
+    let powerUp: PowerUp | null = null;
+    let projectiles: Array<Projectile> = [];
+    let waves: Array<Wave> = [];
+    let decoySignals: Array<Cell & { life: number }> = [];
+    let hazards: Array<Enemy> = [];
+    let residues: Array<Cell & { life: number }> = [];
+    let pathDots: Array<{ x: number; y: number; life: number }> = [];
+    let playerTrail: Array<Cell> = [];
+    let lastDirection = { dx: 1, dy: 0 };
+    let floatingTexts: Array<FloatingText> = [];
+    let particles: Array<{
+      x: number;
+      y: number;
+      dx: number;
+      dy: number;
+      life: number;
+      color: string;
+    }> = [];
+    let shakeTicks = 0;
+    let flash: { color: string; life: number; total: number } | null = null;
+    let playerAlert: { color: string; life: number; total: number } | null = null;
+    let message = "Collect signal";
+
+    function randomCell() {
+      return {
+        x: Math.floor(Math.random() * boardWidth),
+        y: Math.floor(Math.random() * boardHeight)
+      };
+    }
+
+    function sameCell(a: Cell, b: Cell) {
+      return a.x === b.x && a.y === b.y;
+    }
+
+    function bossCell() {
+      return boss ? { x: Math.round(boss.x), y: Math.round(boss.y) } : { x: -10, y: -10 };
+    }
+
+    function bossSpec(milestone: number) {
+      const roster: Record<number, { kind: BossKind; name: string; hp: number; size: number }> = {
+        15: { kind: "sentinel", name: "Null Sentinel", hp: 8, size: 2.2 },
+        30: { kind: "ace", name: "Outlier Ace", hp: 10, size: 2.3 },
+        45: { kind: "bloom", name: "Entropy Bloom", hp: 12, size: 2.4 },
+        60: { kind: "mirror", name: "Mirror Fitter", hp: 14, size: 2.5 },
+        75: { kind: "baron", name: "Leak Baron", hp: 16, size: 2.6 },
+        90: { kind: "engine", name: "Feedback Engine", hp: 18, size: 2.8 },
+        100: { kind: "surface", name: "The Loss Surface", hp: 28, size: 3.2 }
+      };
+      return roster[milestone] ?? roster[15];
+    }
+
+    function occupied(cell: Cell) {
+      return (
+        sameCell(cell, player) ||
+        hazards.some((hazard) => sameCell(hazard, cell)) ||
+        Boolean(boss && distance(cell, bossCell()) <= Math.ceil(boss.size / 2))
+      );
+    }
+
+    function placeSignal() {
+      if (boss) return;
+      do {
+        signal = randomCell();
+      } while (occupied(signal) || (powerUp && sameCell(signal, powerUp)));
+    }
+
+    function choosePowerKind(): PowerKind {
+      const roll = Math.random();
+      if (roll < 0.22) return "splitter";
+      if (roll < 0.4) return "beam";
+      if (roll < 0.56) return "orbit";
+      if (roll < 0.72) return "wave";
+      if (roll < 0.88) return "shield";
+      return "signal";
+    }
+
+    function maybePlacePowerUp(force = false) {
+      if (boss) return;
+      if (powerUp || (!force && (score < 5 || Math.random() > 0.34))) return;
+
+      let cell = randomCell();
+      while (occupied(cell) || sameCell(cell, signal)) {
+        cell = randomCell();
+      }
+      powerUp = { ...cell, kind: force ? "splitter" : choosePowerKind() };
+    }
+
+    function placeDecoys(count: number) {
+      if (boss) return;
+      decoySignals = [];
+      for (let index = 0; index < count; index += 1) {
+        let cell = randomCell();
+        while (
+          occupied(cell) ||
+          sameCell(cell, signal) ||
+          decoySignals.some((decoy) => sameCell(decoy, cell))
+        ) {
+          cell = randomCell();
+        }
+        decoySignals.push({ ...cell, life: 700 });
+      }
+    }
+
+    function level() {
+      return Math.min(10, Math.floor(score / 10) + 1);
+    }
+
+    function difficulty() {
+      return difficultyGrid[level() - 1] ?? difficultyGrid[0];
+    }
+
+    function directionsFor(kind: EnemyKind) {
+      const straight = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+      const diagonal = [
+        { dx: 1, dy: 1 },
+        { dx: 1, dy: -1 },
+        { dx: -1, dy: 1 },
+        { dx: -1, dy: -1 }
+      ];
+      return kind === "drift" ? straight : [...straight, ...diagonal];
+    }
+
+    function randomDirection(kind: EnemyKind) {
+      const directions = directionsFor(kind);
+      return directions[Math.floor(Math.random() * directions.length)] ?? { dx: 1, dy: 0 };
+    }
+
+    function enemyMaxHp(kind: EnemyKind) {
+      if (kind === "drift") return 1;
+      if (kind === "outlier" || kind === "entropy" || kind === "leak") return 2;
+      if (kind === "overfit") return 3;
+      return 8;
+    }
+
+    function enemyReward(kind: EnemyKind) {
+      if (kind === "drift") return 1;
+      if (kind === "outlier" || kind === "entropy" || kind === "leak") return 2;
+      if (kind === "overfit") return 3;
+      return 8;
+    }
+
+    function spawnHazard(kind: EnemyKind) {
+      let cell = randomCell();
+      while (occupied(cell) || sameCell(cell, signal) || (powerUp && sameCell(cell, powerUp))) {
+        cell = randomCell();
+      }
+      hazards.push({
+        ...cell,
+        ...randomDirection(kind),
+        kind,
+        hp: enemyMaxHp(kind),
+        timer: Math.floor(Math.random() * 5)
+      });
+    }
+
+    function startBossGate(milestone: number) {
+      const spec = bossSpec(milestone);
+      completedBossGates.push(milestone);
+      hazards = [];
+      residues = [];
+      decoySignals = [];
+      projectiles = [];
+      waves = [];
+      powerUp = null;
+      boss = {
+        x: Math.floor(boardWidth * 0.72),
+        y: Math.floor(boardHeight / 2),
+        dx: -1,
+        dy: 0,
+        kind: spec.kind,
+        milestone,
+        hp: spec.hp,
+        maxHp: spec.hp,
+        size: spec.size,
+        timer: 0,
+        name: spec.name
+      };
+      message = `${spec.name} gate`;
+      burst(boss.x, boss.y, "#c7353f", 46);
+      alertPlayer(spec.name, "#c7353f", 9);
+    }
+
+    function checkBossGates() {
+      if (boss || gameOver) return;
+      for (const gateScore of [15, 30, 45, 60, 75, 90, 100]) {
+        if (score >= gateScore && !completedBossGates.includes(gateScore)) {
+          startBossGate(gateScore);
+          return;
+        }
+      }
+    }
+
+    function fillTraffic() {
+      if (boss) return;
+      const counts = difficulty().counts;
+      const kinds: Array<EnemyKind> = ["drift", "outlier", "entropy", "overfit", "leak"];
+      for (const kind of kinds) {
+        let current = hazards.filter((hazard) => hazard.kind === kind).length;
+        while (current < counts[kind]) {
+          spawnHazard(kind);
+          current += 1;
+        }
+      }
+    }
+
+    function sign(value: number) {
+      if (value === 0) return 0;
+      return value > 0 ? 1 : -1;
+    }
+
+    function targetDirection(from: Cell, to: Cell) {
+      return { dx: sign(to.x - from.x), dy: sign(to.y - from.y) };
+    }
+
+    function turnHazard(hazard: Enemy) {
+      const timer = hazard.timer + 1;
+      if (hazard.kind === "entropy" && timer % 2 === 0) {
+        return { ...hazard, ...randomDirection("entropy"), timer };
+      }
+      if (hazard.kind === "outlier") {
+        return timer % 5 === 0
+          ? { ...hazard, ...randomDirection("outlier"), timer }
+          : { ...hazard, timer };
+      }
+      if (hazard.kind === "overfit") {
+        const target = playerTrail[5] ?? playerTrail[playerTrail.length - 1] ?? player;
+        return { ...hazard, ...targetDirection(hazard, target), timer, target };
+      }
+      if (hazard.kind === "leak") {
+        return { ...hazard, ...targetDirection(hazard, signal), timer };
+      }
+      if (hazard.kind === "feedback") {
+        const orbit = [
+          { dx: 1, dy: 0 },
+          { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 },
+          { dx: 0, dy: -1 }
+        ];
+        return { ...hazard, ...orbit[timer % orbit.length], timer };
+      }
+      return { ...hazard, timer };
+    }
+
+    function burst(x: number, y: number, color: string, count = 12) {
+      const centerX = x * tile + tile / 2;
+      const centerY = y * tile + tile / 2;
+      for (let index = 0; index < count; index += 1) {
+        const angle = (Math.PI * 2 * index) / count;
+        particles.push({
+          x: centerX,
+          y: centerY,
+          dx: Math.cos(angle) * (0.7 + Math.random() * 1.3),
+          dy: Math.sin(angle) * (0.7 + Math.random() * 1.3),
+          life: 24 + Math.random() * 14,
+          color
+        });
+      }
+    }
+
+    function showFloatingText(text: string, color: string) {
+      floatingTexts.push({
+        x: player.x * tile + tile / 2,
+        y: player.y * tile - 4,
+        dy: -0.34,
+        life: 62,
+        total: 62,
+        text,
+        color
+      });
+      floatingTexts = floatingTexts.slice(-8);
+    }
+
+    function alertPlayer(text: string, color: string, shake = 7) {
+      shakeTicks = Math.max(shakeTicks, shake);
+      flash = { color, life: 18, total: 18 };
+      playerAlert = { color, life: 28, total: 28 };
+      showFloatingText(text, color);
+    }
+
+    function updateHud() {
+      bestScore = Math.max(bestScore, score);
+      scoreValue.textContent = String(score);
+      levelValue.textContent = String(level());
+      shieldValue.textContent = String(shields);
+      batchValue.textContent =
+        weaponTicks > 0 ? `${weapon.toUpperCase()} ${Math.ceil(weaponTicks / 60)}s` : "BOLT";
+      regularizerValue.textContent = String(kills);
+      pulseValue.textContent = shotCooldown > 0 ? "cooling" : "ready";
+      focusValue.textContent = `${Math.min(100, specialCharge)}%`;
+      cacheValue.textContent = dashCooldown > 0 ? `${Math.ceil(dashCooldown / 20)}s` : "ready";
+      stateValue.textContent = gameOver
+        ? runWon
+          ? "System improved"
+          : `Best ${bestScore}`
+        : boss
+          ? `${boss.name} ${boss.hp}/${boss.maxHp}`
+          : message;
+    }
+
+    function wrap(value: number, max: number) {
+      return (value + max) % max;
+    }
+
+    function distance(a: Cell, b: Cell) {
+      return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+    }
+
+    function scoreSignal(amount: number, text: string, color = "#1f8fc7") {
+      score = Math.min(targetScore, score + amount);
+      specialCharge = Math.min(100, specialCharge + amount * 7);
+      message = text;
+      showFloatingText(`+${amount} SIGNAL`, color);
+      checkBossGates();
+    }
+
+    function absorbNoise() {
+      if (shields > 0) {
+        shields -= 1;
+        message = "Noise filtered";
+        burst(player.x, player.y, "#148f68", 20);
+        alertPlayer("filter applied", "#148f68", 6);
+        updateHud();
+        return true;
+      }
+      return false;
+    }
+
+    function avoidHit() {
+      if (absorbNoise()) return true;
+      return false;
+    }
+
+    function resetGame() {
+      score = 0;
+      tick = 0;
+      shields = 0;
+      maxShields = 3;
+      kills = 0;
+      weapon = "bolt";
+      weaponTicks = 0;
+      shotCooldown = 0;
+      specialCharge = 45;
+      dashCooldown = 0;
+      orbitTicks = 0;
+      boss = null;
+      completedBossGates = [];
+      gameOver = false;
+      runWon = false;
+      particles = [];
+      floatingTexts = [];
+      pathDots = [];
+      projectiles = [];
+      waves = [];
+      playerTrail = [];
+      residues = [];
+      flash = null;
+      playerAlert = null;
+      shakeTicks = 0;
+      powerUp = null;
+      decoySignals = [];
+      message = "Collect signal";
+      player = { x: 5, y: Math.floor(boardHeight / 2) };
+      lastDirection = { dx: 1, dy: 0 };
+      hazards = [];
+      fillTraffic();
+      placeSignal();
+      maybePlacePowerUp(true);
+      updateHud();
+      game.focus();
+    }
+
+    function applyPowerUp(kind: PowerKind) {
+      if (kind === "shield") {
+        shields = Math.min(maxShields, shields + 1);
+        message = "Shield online";
+        alertPlayer("filter", "#148f68", 4);
+      }
+      if (kind === "splitter") {
+        weapon = "splitter";
+        weaponTicks = 900;
+        shotCooldown = 0;
+        message = "Kernel splitter armed";
+        alertPlayer("splitter", "#c47718", 4);
+      }
+      if (kind === "beam") {
+        weapon = "beam";
+        weaponTicks = 720;
+        shotCooldown = 0;
+        message = "Attention beam armed";
+        alertPlayer("beam", "#1f8fc7", 4);
+      }
+      if (kind === "orbit") {
+        weapon = "orbit";
+        weaponTicks = 760;
+        orbitTicks = 760;
+        message = "Orbit guard armed";
+        alertPlayer("orbit", "#8f65b8", 4);
+      }
+      if (kind === "wave") {
+        specialCharge = 100;
+        message = "Gradient wave charged";
+        alertPlayer("wave ready", "#8f65b8", 5);
+      }
+      if (kind === "signal") {
+        scoreSignal(3, "Signal cache integrated", "#c47718");
+      }
+      burst(player.x, player.y, "#148f68", 30);
+    }
+
+    function movePlayer(direction: string) {
+      if (gameOver) return;
+      const previous = { ...player };
+      if (direction === "up") {
+        player.y = wrap(player.y - 1, boardHeight);
+        lastDirection = { dx: 0, dy: -1 };
+      }
+      if (direction === "down") {
+        player.y = wrap(player.y + 1, boardHeight);
+        lastDirection = { dx: 0, dy: 1 };
+      }
+      if (direction === "left") {
+        player.x = wrap(player.x - 1, boardWidth);
+        lastDirection = { dx: -1, dy: 0 };
+      }
+      if (direction === "right") {
+        player.x = wrap(player.x + 1, boardWidth);
+        lastDirection = { dx: 1, dy: 0 };
+      }
+
+      if (!sameCell(previous, player)) {
+        pathDots.unshift({ ...previous, life: 58 });
+        pathDots = pathDots.slice(0, 22);
+        playerTrail.unshift({ ...previous });
+        playerTrail = playerTrail.slice(0, 18);
+      }
+
+      if (!boss && sameCell(player, signal)) {
+        const gain = weapon === "beam" ? 2 : 1;
+        scoreSignal(gain, score % 10 === 0 ? "Level up: more noise" : "Signal integrated");
+        burst(signal.x, signal.y, "#1f8fc7");
+        if (gameOver) {
+          updateHud();
+          return;
+        }
+        fillTraffic();
+        placeSignal();
+        maybePlacePowerUp();
+        checkBossGates();
+      }
+
+      const decoyIndex = decoySignals.findIndex((decoy) => sameCell(decoy, player));
+      if (decoyIndex >= 0) {
+        decoySignals.splice(decoyIndex, 1);
+        score = Math.max(0, score - 2);
+        message = "-2 signal: false pattern";
+        burst(player.x, player.y, "#8f65b8", 24);
+        alertPlayer("false signal", "#8f65b8", 10);
+      }
+
+      if (!boss && powerUp && sameCell(player, powerUp)) {
+        applyPowerUp(powerUp.kind);
+        powerUp = null;
+        checkBossGates();
+      }
+
+      const residueIndex = residues.findIndex((residue) => sameCell(residue, player));
+      if (residueIndex >= 0) {
+        residues.splice(residueIndex, 1);
+        if (shields > 0) {
+          shields -= 1;
+          message = "Residue filtered";
+          burst(player.x, player.y, "#148f68", 16);
+          alertPlayer("residue filtered", "#148f68", 5);
+        } else {
+          score = Math.max(0, score - 1);
+          message = "-1 signal: uncertainty";
+          burst(player.x, player.y, "#8f65b8", 22);
+          alertPlayer("-1 signal", "#c47718", 10);
+          flash = { color: "#8f65b8", life: 22, total: 22 };
+        }
+      }
+
+      if (hazards.some((hazard) => sameCell(hazard, player)) && !avoidHit()) {
+        gameOver = true;
+        runWon = false;
+        message = "Noise overwhelmed";
+        burst(player.x, player.y, "#c7353f", 34);
+        alertPlayer("field hit", "#c7353f", 18);
+      }
+      if (boss && bossDistance(player) <= boss.size / 2 + 0.3 && !avoidHit()) {
+        gameOver = true;
+        runWon = false;
+        message = `${boss.name} overwhelmed Mira`;
+        burst(player.x, player.y, "#c7353f", 34);
+        alertPlayer("field hit", "#c7353f", 18);
+      }
+      updateHud();
+    }
+
+    function fireProjectile(dx: number, dy: number, kind: WeaponKind, damage: number) {
+      projectiles.push({
+        x: player.x + 0.5,
+        y: player.y + 0.5,
+        dx,
+        dy,
+        life: kind === "beam" ? 44 : 32,
+        damage,
+        kind
+      });
+    }
+
+    function useShoot() {
+      if (gameOver || shotCooldown > 0) return;
+      const { dx, dy } = lastDirection;
+      if (weapon === "splitter") {
+        fireProjectile(dx, dy, "splitter", 1);
+        if (dx !== 0) {
+          fireProjectile(dx, -1, "splitter", 1);
+          fireProjectile(dx, 1, "splitter", 1);
+        } else {
+          fireProjectile(-1, dy, "splitter", 1);
+          fireProjectile(1, dy, "splitter", 1);
+        }
+        shotCooldown = 13;
+      } else if (weapon === "beam") {
+        fireProjectile(dx, dy, "beam", 2);
+        shotCooldown = 20;
+      } else {
+        fireProjectile(dx, dy, "bolt", 1);
+        shotCooldown = 11;
+      }
+      message = weapon === "bolt" ? "Denoise bolt" : `${weapon} fired`;
+      burst(player.x, player.y, weapon === "beam" ? "#1f8fc7" : "#c47718", 8);
+      updateHud();
+    }
+
+    function useSpecial() {
+      if (gameOver || specialCharge < 100) return;
+      specialCharge = 0;
+      waves.push({ x: player.x + 0.5, y: player.y + 0.5, radius: 0.2, life: 28, maxRadius: 4.3 });
+      residues = residues.filter((residue) => distance(residue, player) > 4);
+      if (boss && bossDistance(player) <= 5) damageBoss(4, "#8f65b8");
+      for (let index = hazards.length - 1; index >= 0; index -= 1) {
+        if (distance(hazards[index], player) <= 4) damageEnemy(index, 3, "#8f65b8");
+      }
+      alertPlayer("stability wave", "#8f65b8", 7);
+      message = "Gradient wave released";
+      updateHud();
+    }
+
+    function useDash() {
+      if (gameOver || dashCooldown > 0) return;
+      for (let step = 0; step < 3; step += 1) {
+        pathDots.unshift({ ...player, life: 70 });
+        player.x = wrap(player.x + lastDirection.dx, boardWidth);
+        player.y = wrap(player.y + lastDirection.dy, boardHeight);
+      }
+      dashCooldown = 110;
+      message = "Dash";
+      burst(player.x, player.y, "#1f8fc7", 16);
+      updateHud();
+    }
+
+    function damageEnemy(index: number, damage: number, color: string) {
+      const hazard = hazards[index];
+      if (!hazard) return;
+      hazard.hp -= damage;
+      burst(hazard.x, hazard.y, color, 10);
+      if (hazard.hp > 0) return;
+      const reward = enemyReward(hazard.kind);
+      kills += 1;
+      burst(hazard.x, hazard.y, enemyPalette[hazard.kind].color, 28);
+      hazards.splice(index, 1);
+      scoreSignal(reward, "Noise destroyed", enemyPalette[hazard.kind].color);
+      if (!powerUp && Math.random() < 0.18) maybePlacePowerUp();
+      checkBossGates();
+    }
+
+    function bossDistance(cell: { x: number; y: number }) {
+      if (!boss) return Number.POSITIVE_INFINITY;
+      return Math.max(Math.abs(cell.x - boss.x), Math.abs(cell.y - boss.y));
+    }
+
+    function damageBoss(damage: number, color: string) {
+      if (!boss) return;
+      boss.hp -= damage;
+      burst(boss.x, boss.y, color, 16);
+      shakeTicks = Math.max(shakeTicks, 4);
+      if (boss.hp > 0) return;
+
+      const defeated = boss;
+      const isFinal = defeated.milestone === 100;
+      boss = null;
+      kills += 1;
+      projectiles = [];
+      waves = [];
+      residues = [];
+      burst(defeated.x, defeated.y, bossPalette[defeated.kind].color, isFinal ? 86 : 56);
+      alertPlayer(`${defeated.name.toUpperCase()} DOWN`, bossPalette[defeated.kind].color, 12);
+      if (isFinal) {
+        gameOver = true;
+        runWon = true;
+        message = "System improved";
+      } else {
+        scoreSignal(4, `${defeated.name} cleared`, bossPalette[defeated.kind].color);
+        message = `${defeated.name} defeated`;
+        placeSignal();
+        maybePlacePowerUp(true);
+        fillTraffic();
+      }
+      updateHud();
+    }
+
+    function moveBoss() {
+      if (!boss) return;
+      boss.timer += 1;
+      if (boss.kind === "sentinel") {
+        if (boss.timer % 4 === 0) boss.dx *= -1;
+      }
+      if (boss.kind === "ace") {
+        if (boss.timer % 5 === 0) {
+          boss.dx = sign(player.x - boss.x) || boss.dx;
+          boss.dy = sign(player.y - boss.y) || boss.dy;
+        }
+      }
+      if (boss.kind === "bloom") {
+        if (boss.timer % 2 === 0) {
+          residues.push({ x: Math.round(boss.x), y: Math.round(boss.y), life: 220 });
+        }
+        if (boss.timer % 4 === 0) {
+          const dir = randomDirection("entropy");
+          boss.dx = dir.dx;
+          boss.dy = dir.dy;
+        }
+      }
+      if (boss.kind === "mirror") {
+        const target = playerTrail[8] ?? playerTrail[playerTrail.length - 1] ?? player;
+        boss.dx = sign(target.x - boss.x);
+        boss.dy = sign(target.y - boss.y);
+      }
+      if (boss.kind === "baron") {
+        boss.dx = sign(signal.x - boss.x) || boss.dx;
+        boss.dy = sign(signal.y - boss.y) || boss.dy;
+        if (distance(bossCell(), signal) <= 1) {
+          score = Math.max(0, score - 1);
+          alertPlayer("-1 leak", "#d06c2f", 5);
+          placeSignal();
+        }
+      }
+      if (boss.kind === "engine") {
+        const orbit = [
+          { dx: 1, dy: 0 },
+          { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 },
+          { dx: 0, dy: -1 }
+        ];
+        const dir = orbit[boss.timer % orbit.length] ?? orbit[0];
+        boss.dx = dir.dx;
+        boss.dy = dir.dy;
+        residues.push({ x: Math.round(boss.x), y: Math.round(boss.y), life: 150 });
+      }
+      if (boss.kind === "surface") {
+        const target = boss.timer % 6 < 3 ? player : (playerTrail[6] ?? player);
+        boss.dx = sign(target.x - boss.x);
+        boss.dy = sign(target.y - boss.y);
+        if (boss.timer % 3 === 0) {
+          residues.push({ x: Math.round(boss.x), y: Math.round(boss.y), life: 190 });
+          placeDecoys(0);
+        }
+      }
+      const speed = boss.kind === "ace" && boss.timer % 5 === 0 ? 2 : 1;
+      boss.x = Math.max(1, Math.min(boardWidth - boss.size - 1, boss.x + boss.dx * speed));
+      boss.y = Math.max(1, Math.min(boardHeight - boss.size - 1, boss.y + boss.dy * speed));
+      if (bossDistance(player) <= boss.size / 2 + 0.3 && !avoidHit()) {
+        gameOver = true;
+        runWon = false;
+        message = `${boss.name} overwhelmed Mira`;
+        burst(player.x, player.y, "#c7353f", 34);
+        alertPlayer("field hit", "#c7353f", 18);
+        updateHud();
+      }
+    }
+
+    function cx(cellX: number) {
+      return cellX * tile + tile / 2;
+    }
+
+    function cy(cellY: number) {
+      return cellY * tile + tile / 2;
+    }
+
+    function drawFieldHalo(x: number, y: number, color: string, radius = tile * 0.9, alpha = 0.18) {
+      const gradient = gameCtx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+      gameCtx.globalAlpha = alpha;
+      gameCtx.fillStyle = gradient;
+      gameCtx.beginPath();
+      gameCtx.arc(x, y, radius, 0, Math.PI * 2);
+      gameCtx.fill();
+      gameCtx.globalAlpha = 1;
+    }
+
+    function drawObservedPoint(
+      x: number,
+      y: number,
+      color: string,
+      radius = tile * 0.28,
+      ring = false
+    ) {
+      gameCtx.fillStyle = color;
+      gameCtx.strokeStyle = color;
+      gameCtx.lineWidth = 2;
+      gameCtx.beginPath();
+      gameCtx.arc(x, y, radius, 0, Math.PI * 2);
+      if (ring) {
+        gameCtx.stroke();
+      } else {
+        gameCtx.fill();
+      }
+      gameCtx.lineWidth = 1;
+    }
+
+    function drawDottedLine(fromX: number, fromY: number, toX: number, toY: number, color: string) {
+      gameCtx.save();
+      gameCtx.strokeStyle = color;
+      gameCtx.lineWidth = 1.6;
+      gameCtx.setLineDash([2, 6]);
+      gameCtx.beginPath();
+      gameCtx.moveTo(fromX, fromY);
+      gameCtx.lineTo(toX, toY);
+      gameCtx.stroke();
+      gameCtx.restore();
+    }
+
+    function drawPlayer(time: number) {
+      const x = cx(player.x);
+      const y = cy(player.y);
+      const pulse = 1 + Math.sin(time / 240) * 0.08;
+      drawFieldHalo(x, y, "rgba(20, 143, 104, 0.65)", tile * 1.05, 0.16);
+      if (shields > 0) {
+        gameCtx.strokeStyle = "rgba(20, 143, 104, 0.58)";
+        gameCtx.lineWidth = 2;
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * 0.62, 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.lineWidth = 1;
+      }
+      if (playerAlert) {
+        const alpha = Math.max(0, playerAlert.life / playerAlert.total);
+        gameCtx.globalAlpha = 0.18 + alpha * 0.32;
+        gameCtx.strokeStyle = playerAlert.color;
+        gameCtx.lineWidth = 2.5;
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * (0.75 + alpha * 0.42), 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.lineWidth = 1;
+        gameCtx.globalAlpha = 1;
+      }
+      drawObservedPoint(x, y, "#148f68", tile * 0.34 * pulse, true);
+      drawObservedPoint(x, y, "#148f68", tile * 0.12, false);
+      if (orbitTicks > 0) {
+        gameCtx.globalAlpha = 0.42;
+        gameCtx.strokeStyle = "#8f65b8";
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * 0.92, 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.globalAlpha = 1;
+      }
+    }
+
+    function drawSignal(time: number) {
+      const x = cx(signal.x);
+      const y = cy(signal.y);
+      const pulse = 1 + Math.sin(time / 260) * 0.1;
+      drawFieldHalo(x, y, "rgba(31, 143, 199, 0.65)", tile * 1.12, 0.18);
+      drawObservedPoint(x, y, "#1f8fc7", tile * 0.24 * pulse, false);
+      gameCtx.strokeStyle = "rgba(31, 143, 199, 0.44)";
+      gameCtx.beginPath();
+      gameCtx.arc(x, y, tile * 0.48 * pulse, 0, Math.PI * 2);
+      gameCtx.stroke();
+    }
+
+    function drawDecoys() {
+      for (const decoy of decoySignals) {
+        const alpha = Math.max(0.18, decoy.life / 700) * 0.54;
+        gameCtx.globalAlpha = alpha;
+        drawObservedPoint(cx(decoy.x), cy(decoy.y), "#8f65b8", tile * 0.28, true);
+        gameCtx.globalAlpha = 1;
+      }
+    }
+
+    function drawProjectiles() {
+      for (const projectile of projectiles) {
+        const color =
+          projectile.kind === "beam"
+            ? "#1f8fc7"
+            : projectile.kind === "splitter"
+              ? "#c47718"
+              : "#148f68";
+        const pxX = projectile.x * tile;
+        const pxY = projectile.y * tile;
+        if (projectile.kind === "beam") {
+          gameCtx.strokeStyle = color;
+          gameCtx.lineWidth = 3;
+          gameCtx.beginPath();
+          gameCtx.moveTo(pxX - 13, pxY);
+          gameCtx.lineTo(pxX + 13, pxY);
+          gameCtx.stroke();
+          gameCtx.lineWidth = 1;
+        } else {
+          drawObservedPoint(pxX, pxY, color, 5, false);
+        }
+      }
+    }
+
+    function drawWaves() {
+      for (const wave of waves) {
+        const alpha = Math.max(0, wave.life / 28);
+        gameCtx.globalAlpha = alpha * 0.58;
+        gameCtx.strokeStyle = "#8f65b8";
+        gameCtx.lineWidth = 2;
+        gameCtx.beginPath();
+        gameCtx.arc(wave.x * tile, wave.y * tile, wave.radius * tile, 0, Math.PI * 2);
+        gameCtx.stroke();
+      }
+      gameCtx.lineWidth = 1;
+      gameCtx.globalAlpha = 1;
+    }
+
+    function drawOrbitGuard(time: number) {
+      if (orbitTicks <= 0) return;
+      const angle = time / 140;
+      for (let index = 0; index < 2; index += 1) {
+        const theta = angle + index * Math.PI;
+        const x = player.x * tile + tile / 2 + Math.cos(theta) * tile * 0.78;
+        const y = player.y * tile + tile / 2 + Math.sin(theta) * tile * 0.78;
+        drawObservedPoint(x, y, "#8f65b8", 5, false);
+      }
+    }
+
+    function drawPowerUp(time: number) {
+      if (!powerUp) return;
+      const color =
+        powerUp.kind === "shield"
+          ? "#148f68"
+          : powerUp.kind === "splitter" || powerUp.kind === "signal"
+            ? "#c47718"
+            : powerUp.kind === "beam"
+              ? "#1f8fc7"
+              : "#8f65b8";
+      const x = cx(powerUp.x);
+      const y = cy(powerUp.y);
+      const pulse = 1 + Math.sin(time / 180) * 0.1;
+      drawFieldHalo(x, y, color, tile * 0.94, 0.16);
+      drawObservedPoint(x, y, color, tile * 0.22 * pulse, true);
+      gameCtx.fillStyle = color;
+      if (powerUp.kind === "splitter") {
+        gameCtx.fillRect(x - 9, y - 1, 18, 2);
+        gameCtx.fillRect(x - 9, y - 7, 18, 2);
+        gameCtx.fillRect(x - 9, y + 5, 18, 2);
+      } else if (powerUp.kind === "beam") {
+        gameCtx.fillRect(x - 2, y - 10, 4, 20);
+        gameCtx.fillRect(x - 10, y - 2, 20, 4);
+      } else if (powerUp.kind === "orbit") {
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * 0.35, 0.35, Math.PI * 1.65);
+        gameCtx.stroke();
+      } else {
+        drawObservedPoint(x, y, color, 4, false);
+      }
+    }
+
+    function drawHazard(hazard: Enemy, time: number) {
+      const palette = enemyPalette[hazard.kind];
+      const hx = hazard.x;
+      const hy = hazard.y;
+      const x = cx(hx);
+      const y = cy(hy);
+      const pulse = 1 + Math.sin(time / 260 + hazard.timer) * 0.12;
+      drawFieldHalo(x, y, palette.color, tile * 0.92, 0.12);
+      if (hazard.kind === "outlier" && hazard.timer % 5 === 4) {
+        gameCtx.globalAlpha = 0.34;
+        gameCtx.strokeStyle = palette.color;
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * 0.66, 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.globalAlpha = 1;
+      }
+      if (hazard.kind === "overfit" && hazard.target) {
+        drawDottedLine(x, y, cx(hazard.target.x), cy(hazard.target.y), "rgba(184, 74, 98, 0.32)");
+      }
+      if (weapon === "beam" || specialCharge >= 100) {
+        drawDottedLine(
+          x,
+          y,
+          cx(wrap(hazard.x + hazard.dx * 2, boardWidth)),
+          cy(wrap(hazard.y + hazard.dy * 2, boardHeight)),
+          "rgba(47, 111, 88, 0.24)"
+        );
+      }
+      if (hazard.kind === "drift") {
+        gameCtx.strokeStyle = palette.color;
+        gameCtx.lineWidth = 3;
+        gameCtx.beginPath();
+        gameCtx.moveTo(x - tile * 0.38, y);
+        gameCtx.lineTo(x + tile * 0.38, y);
+        gameCtx.stroke();
+        gameCtx.lineWidth = 1;
+      }
+      if (hazard.kind === "outlier") {
+        gameCtx.save();
+        gameCtx.translate(x, y);
+        gameCtx.rotate(Math.PI / 4);
+        gameCtx.strokeStyle = palette.color;
+        gameCtx.lineWidth = 2;
+        gameCtx.strokeRect(
+          -tile * 0.22 * pulse,
+          -tile * 0.22 * pulse,
+          tile * 0.44 * pulse,
+          tile * 0.44 * pulse
+        );
+        gameCtx.restore();
+      }
+      if (hazard.kind === "entropy") {
+        gameCtx.strokeStyle = palette.color;
+        gameCtx.setLineDash([3, 4]);
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * 0.34 * pulse, 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.setLineDash([]);
+      }
+      if (hazard.kind === "overfit") {
+        drawObservedPoint(x, y, palette.color, tile * 0.28, true);
+        gameCtx.fillStyle = palette.color;
+        gameCtx.fillRect(x - 6, y - 2, 12, 4);
+      }
+      if (hazard.kind === "leak") {
+        gameCtx.fillStyle = palette.color;
+        gameCtx.beginPath();
+        gameCtx.ellipse(x, y, tile * 0.18, tile * 0.34, 0, 0, Math.PI * 2);
+        gameCtx.fill();
+      }
+      if (hazard.kind === "feedback") {
+        drawObservedPoint(x, y, palette.color, tile * 0.34, false);
+        gameCtx.strokeStyle = palette.accent;
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * 0.54, 0, Math.PI * 2);
+        gameCtx.stroke();
+      }
+    }
+
+    function drawBoss(time: number) {
+      if (!boss) return;
+      const palette = bossPalette[boss.kind];
+      const originX = boss.x * tile + tile / 2;
+      const originY = boss.y * tile + tile / 2;
+      const size = boss.size * tile;
+      const radius = size * (0.42 + Math.sin(time / 260) * 0.025);
+      drawFieldHalo(originX, originY, palette.color, size * 0.92, 0.18);
+      gameCtx.strokeStyle = palette.color;
+      gameCtx.lineWidth = 3;
+      gameCtx.beginPath();
+      gameCtx.arc(originX, originY, radius, 0, Math.PI * 2);
+      gameCtx.stroke();
+      gameCtx.lineWidth = 1;
+      gameCtx.fillStyle = palette.color;
+      if (boss.kind === "sentinel") {
+        gameCtx.fillRect(originX - radius * 0.72, originY - 3, radius * 1.44, 6);
+      }
+      if (boss.kind === "ace") {
+        gameCtx.save();
+        gameCtx.translate(originX, originY);
+        gameCtx.rotate(Math.PI / 4);
+        gameCtx.strokeRect(-radius * 0.58, -radius * 0.58, radius * 1.16, radius * 1.16);
+        gameCtx.restore();
+      }
+      if (boss.kind === "bloom") {
+        for (let petal = 0; petal < 6; petal += 1) {
+          const theta = (petal / 6) * Math.PI * 2 + time / 900;
+          drawObservedPoint(
+            originX + Math.cos(theta) * radius * 0.72,
+            originY + Math.sin(theta) * radius * 0.72,
+            palette.color,
+            5,
+            false
+          );
+        }
+      }
+      if (boss.kind === "mirror") {
+        gameCtx.strokeRect(
+          originX - radius * 0.62,
+          originY - radius * 0.62,
+          radius * 1.24,
+          radius * 1.24
+        );
+      }
+      if (boss.kind === "baron") {
+        gameCtx.fillRect(originX - 4, originY - radius, 8, radius * 2);
+      }
+      if (boss.kind === "engine") {
+        gameCtx.setLineDash([5, 5]);
+        gameCtx.beginPath();
+        gameCtx.arc(originX, originY, radius * 0.72, 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.setLineDash([]);
+      }
+      if (boss.kind === "surface") {
+        gameCtx.fillRect(originX - radius, originY - 3, radius * 2, 6);
+        gameCtx.fillRect(originX - 3, originY - radius, 6, radius * 2);
+      }
+      gameCtx.fillStyle = "rgba(29, 33, 28, 0.16)";
+      gameCtx.fillRect(originX - size * 0.42, originY - radius - 18, size * 0.84, 5);
+      gameCtx.fillStyle = palette.color;
+      gameCtx.fillRect(
+        originX - size * 0.42,
+        originY - radius - 18,
+        size * 0.84 * (boss.hp / boss.maxHp),
+        5
+      );
+      gameCtx.fillStyle = palette.accent;
+      gameCtx.font = "600 12px Georgia, serif";
+      gameCtx.textAlign = "center";
+      gameCtx.fillText(boss.name, originX, originY - radius - 24);
+    }
+
+    function drawPathDots() {
+      for (const dot of pathDots) {
+        gameCtx.globalAlpha = Math.max(0, dot.life / 58) * 0.45;
+        drawObservedPoint(cx(dot.x), cy(dot.y), "#c47718", 2.5, false);
+      }
+      gameCtx.globalAlpha = 1;
+    }
+
+    function drawResidues() {
+      for (const residue of residues) {
+        const alpha = Math.max(0, residue.life / 190) * 0.22;
+        gameCtx.globalAlpha = alpha;
+        gameCtx.fillStyle = "#8f65b8";
+        gameCtx.beginPath();
+        gameCtx.arc(cx(residue.x), cy(residue.y), tile * 0.48, 0, Math.PI * 2);
+        gameCtx.fill();
+      }
+      gameCtx.globalAlpha = 1;
+    }
+
+    function drawParticles() {
+      for (const particle of particles) {
+        gameCtx.globalAlpha = Math.max(0, particle.life / 38);
+        gameCtx.fillStyle = particle.color;
+        gameCtx.beginPath();
+        gameCtx.arc(particle.x, particle.y, 2, 0, Math.PI * 2);
+        gameCtx.fill();
+      }
+      gameCtx.globalAlpha = 1;
+    }
+
+    function drawFloatingTexts() {
+      gameCtx.textAlign = "center";
+      gameCtx.font = "600 12px Georgia, serif";
+      for (const floatingText of floatingTexts) {
+        const alpha = Math.max(0, floatingText.life / floatingText.total);
+        gameCtx.globalAlpha = alpha;
+        gameCtx.fillStyle = floatingText.color;
+        gameCtx.fillText(floatingText.text, floatingText.x, floatingText.y);
+      }
+      gameCtx.globalAlpha = 1;
+    }
+
+    function drawFlashOverlay() {
+      if (!flash) return;
+      const alpha = Math.max(0, flash.life / flash.total) * 0.16;
+      gameCtx.fillStyle = flash.color;
+      gameCtx.globalAlpha = alpha;
+      gameCtx.fillRect(0, 0, game.width, game.height);
+      gameCtx.globalAlpha = Math.min(0.36, alpha * 2);
+      gameCtx.strokeStyle = flash.color;
+      gameCtx.lineWidth = 5;
+      gameCtx.strokeRect(8, 8, game.width - 16, game.height - 16);
+      gameCtx.lineWidth = 1;
+      gameCtx.globalAlpha = 1;
+    }
+
+    function drawGame(time = 0) {
+      const background = gameCtx.createLinearGradient(0, 0, game.width, game.height);
+      background.addColorStop(0, "#fbfaf7");
+      background.addColorStop(0.52, "#f2f6f2");
+      background.addColorStop(1, "#f8f1ea");
+      gameCtx.fillStyle = background;
+      gameCtx.fillRect(0, 0, game.width, game.height);
+      gameCtx.save();
+      if (shakeTicks > 0) {
+        const shake = Math.min(6, shakeTicks * 0.36);
+        gameCtx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+      }
+      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.08)";
+      for (let x = 0; x <= game.width; x += tile) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(x, 0);
+        gameCtx.lineTo(x, game.height);
+        gameCtx.stroke();
+      }
+      for (let y = 0; y <= game.height; y += tile) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(0, y);
+        gameCtx.lineTo(game.width, y);
+        gameCtx.stroke();
+      }
+      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.11)";
+      gameCtx.beginPath();
+      gameCtx.moveTo(0, game.height * 0.32);
+      gameCtx.lineTo(game.width, game.height * 0.18);
+      gameCtx.moveTo(game.width * 0.2, game.height);
+      gameCtx.lineTo(game.width * 0.78, 0);
+      gameCtx.moveTo(game.width * 0.64, game.height);
+      gameCtx.lineTo(game.width, game.height * 0.52);
+      gameCtx.stroke();
+      for (let band = 0; band < 4; band += 1) {
+        gameCtx.globalAlpha = 0.18;
+        gameCtx.strokeStyle = band % 2 ? "#1f8fc7" : "#148f68";
+        gameCtx.beginPath();
+        for (let point = 0; point <= 80; point += 1) {
+          const t = point / 80;
+          const x = t * game.width;
+          const y =
+            game.height * (0.22 + band * 0.15) +
+            Math.sin(t * Math.PI * 2 + time / 1700 + band) * 18;
+          if (point === 0) gameCtx.moveTo(x, y);
+          else gameCtx.lineTo(x, y);
+        }
+        gameCtx.stroke();
+      }
+      gameCtx.globalAlpha = 1;
+      gameCtx.strokeStyle = "rgba(29, 33, 28, 0.22)";
+      gameCtx.lineWidth = 1;
+      gameCtx.strokeRect(8, 8, game.width - 16, game.height - 16);
+      gameCtx.lineWidth = 1;
+      if (!boss) drawSignal(time);
+      if (!boss) drawDecoys();
+      drawWaves();
+      if (!boss) drawPowerUp(time);
+      drawResidues();
+      for (const hazard of hazards) drawHazard(hazard, time);
+      drawBoss(time);
+      drawProjectiles();
+      drawPathDots();
+      drawPlayer(time);
+      drawOrbitGuard(time);
+      drawParticles();
+      drawFloatingTexts();
+      gameCtx.restore();
+      drawFlashOverlay();
+      if (gameOver) {
+        gameCtx.fillStyle = "rgba(251, 250, 247, 0.88)";
+        gameCtx.fillRect(0, 0, game.width, game.height);
+        gameCtx.fillStyle = runWon ? "#148f68" : "#b84a62";
+        gameCtx.font = "600 28px Georgia, serif";
+        gameCtx.textAlign = "center";
+        gameCtx.fillText(
+          runWon ? "System stabilized" : "Noise overwhelmed the field",
+          game.width / 2,
+          game.height / 2 - 10
+        );
+        gameCtx.fillStyle = "#687064";
+        gameCtx.font = "500 15px Georgia, serif";
+        gameCtx.fillText(
+          "Press reset to run the experiment again",
+          game.width / 2,
+          game.height / 2 + 22
+        );
+      }
+    }
+
+    function animateGame(time = 0) {
+      tick += 1;
+      if (weaponTicks > 0) {
+        weaponTicks -= 1;
+        if (weaponTicks <= 0) weapon = "bolt";
+      }
+      if (shotCooldown > 0) shotCooldown -= 1;
+      if (dashCooldown > 0) dashCooldown -= 1;
+      if (orbitTicks > 0) orbitTicks -= 1;
+      particles = particles
+        .map((particle) => ({
+          ...particle,
+          x: particle.x + particle.dx,
+          y: particle.y + particle.dy,
+          life: particle.life - 1
+        }))
+        .filter((particle) => particle.life > 0);
+      floatingTexts = floatingTexts
+        .map((floatingText) => ({
+          ...floatingText,
+          y: floatingText.y + floatingText.dy,
+          life: floatingText.life - 1
+        }))
+        .filter((floatingText) => floatingText.life > 0);
+      pathDots = pathDots
+        .map((dot) => ({ ...dot, life: dot.life - 1 }))
+        .filter((dot) => dot.life > 0);
+      residues = residues
+        .map((residue) => ({ ...residue, life: residue.life - 1 }))
+        .filter((residue) => residue.life > 0);
+      decoySignals = decoySignals
+        .map((decoy) => ({ ...decoy, life: decoy.life - 1 }))
+        .filter((decoy) => decoy.life > 0);
+      projectiles = projectiles
+        .map((projectile) => ({
+          ...projectile,
+          x: projectile.x + projectile.dx * (projectile.kind === "beam" ? 0.55 : 0.42),
+          y: projectile.y + projectile.dy * (projectile.kind === "beam" ? 0.55 : 0.42),
+          life: projectile.life - 1
+        }))
+        .filter(
+          (projectile) =>
+            projectile.life > 0 &&
+            projectile.x >= -1 &&
+            projectile.y >= -1 &&
+            projectile.x <= boardWidth + 1 &&
+            projectile.y <= boardHeight + 1
+        );
+      for (
+        let projectileIndex = projectiles.length - 1;
+        projectileIndex >= 0;
+        projectileIndex -= 1
+      ) {
+        const projectile = projectiles[projectileIndex];
+        if (!projectile) continue;
+        if (
+          boss &&
+          Math.abs(boss.x + boss.size / 2 - projectile.x) < boss.size / 2 + 0.35 &&
+          Math.abs(boss.y + boss.size / 2 - projectile.y) < boss.size / 2 + 0.35
+        ) {
+          damageBoss(projectile.damage, projectile.kind === "beam" ? "#1f8fc7" : "#c47718");
+          if (projectile.kind !== "beam") projectiles.splice(projectileIndex, 1);
+          continue;
+        }
+        const hitIndex = hazards.findIndex(
+          (hazard) =>
+            Math.abs(hazard.x + 0.5 - projectile.x) < 0.48 &&
+            Math.abs(hazard.y + 0.5 - projectile.y) < 0.48
+        );
+        if (hitIndex < 0) continue;
+        damageEnemy(
+          hitIndex,
+          projectile.damage,
+          projectile.kind === "beam" ? "#1f8fc7" : "#c47718"
+        );
+        if (projectile.kind !== "beam") projectiles.splice(projectileIndex, 1);
+      }
+      waves = waves
+        .map((wave) => ({
+          ...wave,
+          radius: Math.min(wave.maxRadius, wave.radius + 0.22),
+          life: wave.life - 1
+        }))
+        .filter((wave) => wave.life > 0);
+      if (orbitTicks > 0 && tick % 10 === 0) {
+        if (boss && bossDistance(player) <= boss.size / 2 + 1.2) damageBoss(1, "#8f65b8");
+        for (let index = hazards.length - 1; index >= 0; index -= 1) {
+          if (distance(hazards[index], player) <= 1) damageEnemy(index, 1, "#8f65b8");
+        }
+      }
+      if (shakeTicks > 0) shakeTicks -= 1;
+      if (flash) {
+        flash = { ...flash, life: flash.life - 1 };
+        if (flash.life <= 0) flash = null;
+      }
+      if (playerAlert) {
+        playerAlert = { ...playerAlert, life: playerAlert.life - 1 };
+        if (playerAlert.life <= 0) playerAlert = null;
+      }
+      const activeDelay = difficulty().delay;
+      if (!gameOver && boss && tick % Math.max(12, activeDelay - 3) === 0) {
+        moveBoss();
+      }
+      if (!gameOver && !boss && tick % activeDelay === 0) {
+        hazards = hazards.map((hazard) => {
+          const turned = turnHazard(hazard);
+          const steps = turned.kind === "outlier" && turned.timer % 5 === 0 ? 3 : 1;
+          if (turned.kind === "entropy" || turned.kind === "feedback") {
+            residues.push({
+              x: turned.x,
+              y: turned.y,
+              life: turned.kind === "feedback" ? 130 : 190
+            });
+            residues = residues.slice(-80);
+          }
+          const moved = {
+            ...turned,
+            x: wrap(turned.x + turned.dx * steps, boardWidth),
+            y: wrap(turned.y + turned.dy * steps, boardHeight)
+          };
+          if (moved.kind === "leak" && sameCell(moved, signal)) {
+            score = Math.max(0, score - 1);
+            message = "Leak stole signal";
+            placeSignal();
+            alertPlayer("-1 leak", "#d06c2f", 7);
+          }
+          return moved;
+        });
+        if (hazards.some((hazard) => sameCell(hazard, player)) && !avoidHit()) {
+          gameOver = true;
+          runWon = false;
+          message = "Noise overwhelmed";
+          burst(player.x, player.y, "#c7353f", 34);
+          alertPlayer("field hit", "#c7353f", 18);
+          updateHud();
+        }
+      }
+      if (!gameOver && !boss && tick % 150 === 0) fillTraffic();
+      drawGame(time);
+      requestAnimationFrame(animateGame);
+    }
+
+    game.addEventListener("keydown", (event) => {
+      const directions: Record<string, string> = {
+        ArrowUp: "up",
+        ArrowDown: "down",
+        ArrowLeft: "left",
+        ArrowRight: "right",
+        w: "up",
+        s: "down",
+        a: "left",
+        d: "right"
+      };
+      const direction = directions[event.key];
+      if (direction) {
+        event.preventDefault();
+        movePlayer(direction);
+      }
+      if (event.key === " ") {
+        event.preventDefault();
+        useShoot();
+      }
+      if (event.key === "e" || event.key === "E") {
+        event.preventDefault();
+        useSpecial();
+      }
+      if (event.key === "Shift") {
+        event.preventDefault();
+        useDash();
+      }
+    });
+    game.addEventListener("click", () => game.focus());
+    for (const button of moveButtons) {
+      button.addEventListener("click", () => {
+        const direction = button.dataset.move;
+        if (direction) movePlayer(direction);
+      });
+    }
+    for (const button of actionButtons) {
+      button.addEventListener("click", () => {
+        if (button.dataset.action === "shoot") useShoot();
+        if (button.dataset.action === "special") useSpecial();
+        if (button.dataset.action === "dash") useDash();
+      });
+    }
+    resetButton?.addEventListener("click", resetGame);
+    resetGame();
+    animateGame();
+  }
+</script>

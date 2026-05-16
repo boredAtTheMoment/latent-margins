@@ -1,0 +1,48 @@
+---
+title: "Designing a Technical Publishing Stack"
+description:
+  "A first vertical slice for code-heavy posts, Mermaid diagrams, and static-first publishing."
+pubDate: 2026-05-09
+tags: ["astro", "python", "diagrams"]
+citations:
+  - id: astro-content
+    title: Astro Content Collections
+    authors: Astro Docs
+    year: 2026
+    url: https://docs.astro.build/en/guides/content-collections/
+  - id: uv
+    title: "uv: An extremely fast Python package and project manager"
+    authors: Astral
+    year: 2026
+    url: https://docs.astral.sh/uv/
+draft: false
+---
+
+Technical blogs work best when the writing format stays plain, the output is fast, and richer
+explanations can appear exactly where they help. Astro content collections give the site a typed
+Markdown layer [@astro-content], while uv keeps the Python-side tooling fast and reproducible [@uv].
+
+## Build Flow
+
+```mermaid
+flowchart LR
+  A[Markdown and MDX posts] --> B[Astro content collections]
+  B --> C[Static HTML]
+  D[uv Python tools] --> B
+  C --> E[Cloudflare Pages]
+```
+
+## Python Tooling
+
+The site can stay static while Python handles validation and publishing chores at build time.
+
+```python
+from pathlib import Path
+
+POSTS = Path("src/content/blog")
+
+def slugs() -> list[str]:
+    return sorted(path.stem for path in POSTS.glob("*.mdx"))
+```
+
+That split keeps hosting simple and makes the authoring workflow pleasant.
