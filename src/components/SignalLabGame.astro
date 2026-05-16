@@ -3,8 +3,8 @@
     <p class="eyebrow">Reading break</p>
     <h1 id="game-title">Margin Runner</h1>
     <p>
-      Guide Mira through the margin field. Collect 100 signal samples, avoid noise processes, and
-      use interventions to keep the run alive.
+      Guide Mira through the margin field. Collect 50 signal samples, avoid noise processes, and use
+      interventions to keep the run alive.
     </p>
   </div>
 
@@ -37,9 +37,9 @@
         <p class="console-label">Keyboard</p>
         <div><kbd>WASD</kbd><span>Move Mira</span></div>
         <div><kbd>Arrows</kbd><span>Move Mira</span></div>
-        <div><kbd>Space</kbd><span>Apply the active filter.</span></div>
+        <div><kbd>Space</kbd><span>Fire the current weapon.</span></div>
         <div><kbd>E</kbd><span>Release a stabilizing wave.</span></div>
-        <div><kbd>Shift</kbd><span>Step through one unstable region.</span></div>
+        <div><kbd>Shift</kbd><span>Dash three cells forward.</span></div>
       </div>
     </aside>
 
@@ -47,7 +47,7 @@
       <div class="game-hud" aria-live="polite">
         <div class="hud-primary">
           <span class="hud-cell hud-cell-score">
-            <small>Signal</small><strong><span id="game-score">0</span>/100</strong>
+            <small>Signal</small><strong><span id="game-score">0</span>/50</strong>
           </span>
           <span class="hud-cell">
             <small>Level</small><strong id="game-level">1</strong>
@@ -86,7 +86,7 @@
           <span class="sprite-token sprite-overfit"></span>Overfit tracks your recent path.
         </div>
         <div><span class="sprite-token sprite-leak"></span>Leak steals loose signal samples.</div>
-        <p>Evaluation gates appear at 15, 30, 45, 60, 75, 90, and 100 signal.</p>
+        <p>Evaluation gates appear at 10, 20, 30, 40, and 50 signal.</p>
       </div>
 
       <div class="power-guide console-card" aria-label="Power-up guide">
@@ -100,7 +100,7 @@
         </div>
         <div><span class="sprite-token sprite-probe"></span>Wave cell refills stability.</div>
         <div>
-          <span class="sprite-token sprite-replay"></span>Orbit guard protects contact.
+          <span class="sprite-token sprite-replay"></span>Orbit guard clears nearby noise.
         </div>
         <div><span class="sprite-token sprite-beacon"></span>Signal cache grants clean signal.</div>
       </div>
@@ -151,8 +151,9 @@
     const tile = 32;
     const boardWidth = game.width / tile;
     const boardHeight = game.height / tile;
-    const targetScore = 100;
-    type EnemyKind = "drift" | "outlier" | "entropy" | "overfit" | "leak" | "feedback";
+    const targetScore = 50;
+    const bossGates = [10, 20, 30, 40, 50];
+    type EnemyKind = "drift" | "outlier" | "entropy" | "overfit" | "leak";
     type Enemy = {
       x: number;
       y: number;
@@ -164,10 +165,10 @@
       target?: Cell;
     };
     type Cell = { x: number; y: number };
-    type WeaponKind = "bolt" | "splitter" | "beam" | "orbit";
+    type WeaponKind = "bolt" | "splitter" | "beam";
     type PowerKind = "shield" | "splitter" | "beam" | "wave" | "orbit" | "signal";
     type PowerUp = Cell & { kind: PowerKind };
-    type BossKind = "sentinel" | "ace" | "bloom" | "mirror" | "baron" | "engine" | "surface";
+    type BossKind = "sentinel" | "ace" | "bloom" | "mirror" | "surface";
     type Boss = {
       x: number;
       y: number;
@@ -205,29 +206,21 @@
       outlier: { color: "#1f8fc7", glow: "rgba(31, 143, 199, 0.18)", accent: "#155e84" },
       entropy: { color: "#8f65b8", glow: "rgba(143, 101, 184, 0.17)", accent: "#65458b" },
       overfit: { color: "#b84a62", glow: "rgba(184, 74, 98, 0.17)", accent: "#843346" },
-      leak: { color: "#d06c2f", glow: "rgba(208, 108, 47, 0.16)", accent: "#92451d" },
-      feedback: { color: "#c7353f", glow: "rgba(199, 53, 63, 0.2)", accent: "#8f2028" }
+      leak: { color: "#d06c2f", glow: "rgba(208, 108, 47, 0.16)", accent: "#92451d" }
     };
     const bossPalette: Record<BossKind, { color: string; glow: string; accent: string }> = {
       sentinel: { color: "#c47718", glow: "rgba(196, 119, 24, 0.24)", accent: "#8a5a18" },
       ace: { color: "#1f8fc7", glow: "rgba(31, 143, 199, 0.25)", accent: "#155e84" },
       bloom: { color: "#8f65b8", glow: "rgba(143, 101, 184, 0.25)", accent: "#65458b" },
       mirror: { color: "#b84a62", glow: "rgba(184, 74, 98, 0.25)", accent: "#843346" },
-      baron: { color: "#d06c2f", glow: "rgba(208, 108, 47, 0.24)", accent: "#92451d" },
-      engine: { color: "#c7353f", glow: "rgba(199, 53, 63, 0.28)", accent: "#8f2028" },
       surface: { color: "#148f68", glow: "rgba(20, 143, 104, 0.26)", accent: "#0e6349" }
     };
     const difficultyGrid: Array<{ counts: Record<EnemyKind, number>; delay: number }> = [
-      { counts: { drift: 3, outlier: 0, entropy: 0, overfit: 0, leak: 0, feedback: 0 }, delay: 24 },
-      { counts: { drift: 4, outlier: 1, entropy: 0, overfit: 0, leak: 0, feedback: 0 }, delay: 23 },
-      { counts: { drift: 4, outlier: 1, entropy: 1, overfit: 0, leak: 0, feedback: 0 }, delay: 22 },
-      { counts: { drift: 5, outlier: 2, entropy: 1, overfit: 1, leak: 0, feedback: 0 }, delay: 21 },
-      { counts: { drift: 5, outlier: 2, entropy: 2, overfit: 1, leak: 1, feedback: 0 }, delay: 20 },
-      { counts: { drift: 6, outlier: 3, entropy: 2, overfit: 2, leak: 1, feedback: 0 }, delay: 19 },
-      { counts: { drift: 6, outlier: 3, entropy: 3, overfit: 2, leak: 2, feedback: 0 }, delay: 18 },
-      { counts: { drift: 7, outlier: 4, entropy: 3, overfit: 3, leak: 2, feedback: 0 }, delay: 17 },
-      { counts: { drift: 7, outlier: 4, entropy: 4, overfit: 3, leak: 2, feedback: 0 }, delay: 16 },
-      { counts: { drift: 8, outlier: 5, entropy: 4, overfit: 4, leak: 3, feedback: 0 }, delay: 15 }
+      { counts: { drift: 3, outlier: 0, entropy: 0, overfit: 0, leak: 0 }, delay: 24 },
+      { counts: { drift: 3, outlier: 1, entropy: 0, overfit: 0, leak: 0 }, delay: 23 },
+      { counts: { drift: 4, outlier: 1, entropy: 1, overfit: 0, leak: 0 }, delay: 22 },
+      { counts: { drift: 4, outlier: 2, entropy: 1, overfit: 1, leak: 0 }, delay: 21 },
+      { counts: { drift: 5, outlier: 2, entropy: 2, overfit: 1, leak: 1 }, delay: 20 }
     ];
     let score = 0;
     let bestScore = 0;
@@ -256,6 +249,9 @@
     let pathDots: Array<{ x: number; y: number; life: number }> = [];
     let playerTrail: Array<Cell> = [];
     let lastDirection = { dx: 1, dy: 0 };
+    let heldDirections: Array<string> = [];
+    let heldShoot = false;
+    let lastMoveTick = -100;
     let floatingTexts: Array<FloatingText> = [];
     let particles: Array<{
       x: number;
@@ -287,15 +283,13 @@
 
     function bossSpec(milestone: number) {
       const roster: Record<number, { kind: BossKind; name: string; hp: number; size: number }> = {
-        15: { kind: "sentinel", name: "Null Sentinel", hp: 8, size: 2.2 },
-        30: { kind: "ace", name: "Outlier Ace", hp: 10, size: 2.3 },
-        45: { kind: "bloom", name: "Entropy Bloom", hp: 12, size: 2.4 },
-        60: { kind: "mirror", name: "Mirror Fitter", hp: 14, size: 2.5 },
-        75: { kind: "baron", name: "Leak Baron", hp: 16, size: 2.6 },
-        90: { kind: "engine", name: "Feedback Engine", hp: 18, size: 2.8 },
-        100: { kind: "surface", name: "The Loss Surface", hp: 28, size: 3.2 }
+        10: { kind: "sentinel", name: "Null Sentinel", hp: 7, size: 2.1 },
+        20: { kind: "ace", name: "Outlier Ace", hp: 9, size: 2.25 },
+        30: { kind: "bloom", name: "Entropy Bloom", hp: 11, size: 2.4 },
+        40: { kind: "mirror", name: "Mirror Fitter", hp: 13, size: 2.5 },
+        50: { kind: "surface", name: "The Loss Surface", hp: 18, size: 2.85 }
       };
-      return roster[milestone] ?? roster[15];
+      return roster[milestone] ?? roster[10];
     }
 
     function occupied(cell: Cell) {
@@ -315,11 +309,11 @@
 
     function choosePowerKind(): PowerKind {
       const roll = Math.random();
-      if (roll < 0.22) return "splitter";
-      if (roll < 0.4) return "beam";
-      if (roll < 0.56) return "orbit";
-      if (roll < 0.72) return "wave";
-      if (roll < 0.88) return "shield";
+      if (roll < 0.2) return "splitter";
+      if (roll < 0.38) return "beam";
+      if (roll < 0.54) return "orbit";
+      if (roll < 0.7) return "wave";
+      if (roll < 0.9) return "shield";
       return "signal";
     }
 
@@ -331,7 +325,7 @@
       while (occupied(cell) || sameCell(cell, signal)) {
         cell = randomCell();
       }
-      powerUp = { ...cell, kind: force ? "splitter" : choosePowerKind() };
+      powerUp = { ...cell, kind: force ? "shield" : choosePowerKind() };
     }
 
     function placeDecoys(count: number) {
@@ -351,7 +345,7 @@
     }
 
     function level() {
-      return Math.min(10, Math.floor(score / 10) + 1);
+      return Math.min(5, Math.floor(score / 10) + 1);
     }
 
     function difficulty() {
@@ -436,7 +430,7 @@
 
     function checkBossGates() {
       if (boss || gameOver) return;
-      for (const gateScore of [15, 30, 45, 60, 75, 90, 100]) {
+      for (const gateScore of bossGates) {
         if (score >= gateScore && !completedBossGates.includes(gateScore)) {
           startBossGate(gateScore);
           return;
@@ -483,16 +477,38 @@
       if (hazard.kind === "leak") {
         return { ...hazard, ...targetDirection(hazard, signal), timer };
       }
-      if (hazard.kind === "feedback") {
-        const orbit = [
-          { dx: 1, dy: 0 },
-          { dx: 0, dy: 1 },
-          { dx: -1, dy: 0 },
-          { dx: 0, dy: -1 }
-        ];
-        return { ...hazard, ...orbit[timer % orbit.length], timer };
-      }
       return { ...hazard, timer };
+    }
+
+    function keyDirection(key: string) {
+      const directions: Record<string, string> = {
+        ArrowUp: "up",
+        ArrowDown: "down",
+        ArrowLeft: "left",
+        ArrowRight: "right",
+        w: "up",
+        W: "up",
+        s: "down",
+        S: "down",
+        a: "left",
+        A: "left",
+        d: "right",
+        D: "right"
+      };
+      return directions[key];
+    }
+
+    function activeHeldDirection() {
+      return heldDirections[heldDirections.length - 1];
+    }
+
+    function holdDirection(direction: string) {
+      heldDirections = heldDirections.filter((heldDirection) => heldDirection !== direction);
+      heldDirections.push(direction);
+    }
+
+    function releaseDirection(direction: string) {
+      heldDirections = heldDirections.filter((heldDirection) => heldDirection !== direction);
     }
 
     function burst(x: number, y: number, color: string, count = 12) {
@@ -537,7 +553,11 @@
       levelValue.textContent = String(level());
       shieldValue.textContent = String(shields);
       batchValue.textContent =
-        weaponTicks > 0 ? `${weapon.toUpperCase()} ${Math.ceil(weaponTicks / 60)}s` : "BOLT";
+        weaponTicks > 0
+          ? `${weapon.toUpperCase()} ${Math.ceil(weaponTicks / 60)}s`
+          : orbitTicks > 0
+            ? `GUARD ${Math.ceil(orbitTicks / 60)}s`
+            : "BOLT";
       regularizerValue.textContent = String(kills);
       pulseValue.textContent = shotCooldown > 0 ? "cooling" : "ready";
       focusValue.textContent = `${Math.min(100, specialCharge)}%`;
@@ -606,6 +626,9 @@
       projectiles = [];
       waves = [];
       playerTrail = [];
+      heldDirections = [];
+      heldShoot = false;
+      lastMoveTick = -100;
       residues = [];
       flash = null;
       playerAlert = null;
@@ -644,8 +667,6 @@
         alertPlayer("beam", "#1f8fc7", 4);
       }
       if (kind === "orbit") {
-        weapon = "orbit";
-        weaponTicks = 760;
         orbitTicks = 760;
         message = "Orbit guard armed";
         alertPlayer("orbit", "#8f65b8", 4);
@@ -664,6 +685,7 @@
     function movePlayer(direction: string) {
       if (gameOver) return;
       const previous = { ...player };
+      lastMoveTick = tick;
       if (direction === "up") {
         player.y = wrap(player.y - 1, boardHeight);
         lastDirection = { dx: 0, dy: -1 };
@@ -843,7 +865,7 @@
       if (boss.hp > 0) return;
 
       const defeated = boss;
-      const isFinal = defeated.milestone === 100;
+      const isFinal = defeated.milestone === targetScore;
       boss = null;
       kills += 1;
       projectiles = [];
@@ -904,27 +926,6 @@
         const target = playerTrail[8] ?? playerTrail[playerTrail.length - 1] ?? player;
         boss.dx = sign(target.x - boss.x);
         boss.dy = sign(target.y - boss.y);
-      }
-      if (boss.kind === "baron") {
-        boss.dx = sign(signal.x - boss.x) || boss.dx;
-        boss.dy = sign(signal.y - boss.y) || boss.dy;
-        if (distance(bossCell(), signal) <= 1) {
-          score = Math.max(0, score - 1);
-          alertPlayer("-1 leak", "#d06c2f", 5);
-          placeSignal();
-        }
-      }
-      if (boss.kind === "engine") {
-        const orbit = [
-          { dx: 1, dy: 0 },
-          { dx: 0, dy: 1 },
-          { dx: -1, dy: 0 },
-          { dx: 0, dy: -1 }
-        ];
-        const dir = orbit[boss.timer % orbit.length] ?? orbit[0];
-        boss.dx = dir.dx;
-        boss.dy = dir.dy;
-        residues.push({ x: Math.round(boss.x), y: Math.round(boss.y), life: 150 });
       }
       if (boss.kind === "surface") {
         const target = boss.timer % 6 < 3 ? player : (playerTrail[6] ?? player);
@@ -1208,13 +1209,6 @@
         gameCtx.ellipse(x, y, tile * 0.18, tile * 0.34, 0, 0, Math.PI * 2);
         gameCtx.fill();
       }
-      if (hazard.kind === "feedback") {
-        drawObservedPoint(x, y, palette.color, tile * 0.34, false);
-        gameCtx.strokeStyle = palette.accent;
-        gameCtx.beginPath();
-        gameCtx.arc(x, y, tile * 0.54, 0, Math.PI * 2);
-        gameCtx.stroke();
-      }
     }
 
     function drawBoss(time: number) {
@@ -1261,16 +1255,6 @@
           radius * 1.24,
           radius * 1.24
         );
-      }
-      if (boss.kind === "baron") {
-        gameCtx.fillRect(originX - 4, originY - radius, 8, radius * 2);
-      }
-      if (boss.kind === "engine") {
-        gameCtx.setLineDash([5, 5]);
-        gameCtx.beginPath();
-        gameCtx.arc(originX, originY, radius * 0.72, 0, Math.PI * 2);
-        gameCtx.stroke();
-        gameCtx.setLineDash([]);
       }
       if (boss.kind === "surface") {
         gameCtx.fillRect(originX - radius, originY - 3, radius * 2, 6);
@@ -1447,6 +1431,13 @@
       if (shotCooldown > 0) shotCooldown -= 1;
       if (dashCooldown > 0) dashCooldown -= 1;
       if (orbitTicks > 0) orbitTicks -= 1;
+      if (!gameOver && tick - lastMoveTick >= 7) {
+        const direction = activeHeldDirection();
+        if (direction) movePlayer(direction);
+      }
+      if (!gameOver && heldShoot && shotCooldown <= 0) {
+        useShoot();
+      }
       particles = particles
         .map((particle) => ({
           ...particle,
@@ -1545,11 +1536,11 @@
         hazards = hazards.map((hazard) => {
           const turned = turnHazard(hazard);
           const steps = turned.kind === "outlier" && turned.timer % 5 === 0 ? 3 : 1;
-          if (turned.kind === "entropy" || turned.kind === "feedback") {
+          if (turned.kind === "entropy") {
             residues.push({
               x: turned.x,
               y: turned.y,
-              life: turned.kind === "feedback" ? 130 : 190
+              life: 190
             });
             residues = residues.slice(-80);
           }
@@ -1581,24 +1572,17 @@
     }
 
     game.addEventListener("keydown", (event) => {
-      const directions: Record<string, string> = {
-        ArrowUp: "up",
-        ArrowDown: "down",
-        ArrowLeft: "left",
-        ArrowRight: "right",
-        w: "up",
-        s: "down",
-        a: "left",
-        d: "right"
-      };
-      const direction = directions[event.key];
+      const direction = keyDirection(event.key);
       if (direction) {
         event.preventDefault();
-        movePlayer(direction);
+        const wasHeld = heldDirections.includes(direction);
+        holdDirection(direction);
+        if (!wasHeld) movePlayer(direction);
       }
       if (event.key === " ") {
         event.preventDefault();
-        useShoot();
+        if (!heldShoot) useShoot();
+        heldShoot = true;
       }
       if (event.key === "e" || event.key === "E") {
         event.preventDefault();
@@ -1609,21 +1593,64 @@
         useDash();
       }
     });
+    game.addEventListener("keyup", (event) => {
+      const direction = keyDirection(event.key);
+      if (direction) {
+        event.preventDefault();
+        releaseDirection(direction);
+      }
+      if (event.key === " ") {
+        event.preventDefault();
+        heldShoot = false;
+      }
+    });
+    game.addEventListener("blur", () => {
+      heldDirections = [];
+      heldShoot = false;
+    });
     game.addEventListener("click", () => game.focus());
     for (const button of moveButtons) {
-      button.addEventListener("click", () => {
-        const direction = button.dataset.move;
-        if (direction) movePlayer(direction);
+      const direction = button.dataset.move;
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        game.focus();
+        if (direction) {
+          holdDirection(direction);
+          movePlayer(direction);
+        }
+      });
+      button.addEventListener("pointerup", () => {
+        if (direction) releaseDirection(direction);
+      });
+      button.addEventListener("pointerleave", () => {
+        if (direction) releaseDirection(direction);
+      });
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        game.focus();
       });
     }
     for (const button of actionButtons) {
       button.addEventListener("click", () => {
+        game.focus();
         if (button.dataset.action === "shoot") useShoot();
         if (button.dataset.action === "special") useSpecial();
         if (button.dataset.action === "dash") useDash();
       });
+      button.addEventListener("pointerdown", () => {
+        if (button.dataset.action === "shoot") heldShoot = true;
+      });
+      button.addEventListener("pointerup", () => {
+        if (button.dataset.action === "shoot") heldShoot = false;
+      });
+      button.addEventListener("pointerleave", () => {
+        if (button.dataset.action === "shoot") heldShoot = false;
+      });
     }
-    resetButton?.addEventListener("click", resetGame);
+    resetButton?.addEventListener("click", () => {
+      resetGame();
+      game.focus();
+    });
     resetGame();
     animateGame();
   }
