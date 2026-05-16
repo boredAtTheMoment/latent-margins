@@ -20,17 +20,30 @@
 
       <div class="game-controls console-card" aria-label="Game controls">
         <p class="console-label">Controls</p>
-        <button type="button" data-move="up" aria-label="Move up">W / Up</button>
-        <button type="button" data-move="left" aria-label="Move left">A / Left</button>
-        <button type="button" data-move="down" aria-label="Move down">S / Down</button>
-        <button type="button" data-move="right" aria-label="Move right">D / Right</button>
+        <button type="button" data-move="up" aria-label="Move up"
+          ><span class="control-key">W</span><span class="control-action">Up</span></button
+        >
+        <button type="button" data-move="left" aria-label="Move left"
+          ><span class="control-key">A</span><span class="control-action">Left</span></button
+        >
+        <button type="button" data-move="down" aria-label="Move down"
+          ><span class="control-key">S</span><span class="control-action">Down</span></button
+        >
+        <button type="button" data-move="right" aria-label="Move right"
+          ><span class="control-key">D</span><span class="control-action">Right</span></button
+        >
         <button type="button" data-action="shoot" aria-label="Fire denoise weapon"
-          >Space Fire</button
+          ><span class="control-key">Space</span><span class="control-action">Fire</span></button
         >
-        <button type="button" data-action="special" aria-label="Use gradient wave">E Special</button
+        <button type="button" data-action="special" aria-label="Use gradient wave"
+          ><span class="control-key">E</span><span class="control-action">Special</span></button
         >
-        <button type="button" data-action="dash" aria-label="Dash">Shift Dash</button>
-        <button type="button" data-reset>Reset / R</button>
+        <button type="button" data-action="dash" aria-label="Dash"
+          ><span class="control-key">Shift</span><span class="control-action">Dash</span></button
+        >
+        <button type="button" data-reset
+          ><span class="control-key">R</span><span class="control-action">Reset</span></button
+        >
       </div>
     </aside>
 
@@ -61,6 +74,37 @@
         height="480"
         tabindex="0"
         aria-label="Margin Runner interactive game"></canvas>
+
+      <div class="boss-guide" aria-label="Boss gates">
+        <p class="console-label">Boss Gates</p>
+        <div class="boss-guide-list">
+          <div>
+            <span class="boss-token boss-token-sentinel"></span>
+            <strong>10</strong>
+            <small>Slow scan</small>
+          </div>
+          <div>
+            <span class="boss-token boss-token-ace"></span>
+            <strong>20</strong>
+            <small>Jump chase</small>
+          </div>
+          <div>
+            <span class="boss-token boss-token-bloom"></span>
+            <strong>30</strong>
+            <small>Residue bloom</small>
+          </div>
+          <div>
+            <span class="boss-token boss-token-mirror"></span>
+            <strong>40</strong>
+            <small>Trail mirror</small>
+          </div>
+          <div>
+            <span class="boss-token boss-token-surface"></span>
+            <strong>50</strong>
+            <small>Final pressure</small>
+          </div>
+        </div>
+      </div>
     </div>
 
     <aside class="lab-console lab-console-right" aria-label="Margin Runner reference">
@@ -131,37 +175,6 @@
         </div>
       </div>
     </aside>
-  </div>
-
-  <div class="boss-guide console-card" aria-label="Boss gates">
-    <p class="console-label">Boss Gates</p>
-    <div class="boss-guide-list">
-      <div>
-        <span class="boss-token boss-token-sentinel"></span>
-        <strong>10</strong>
-        <small>Slow scan</small>
-      </div>
-      <div>
-        <span class="boss-token boss-token-ace"></span>
-        <strong>20</strong>
-        <small>Jump chase</small>
-      </div>
-      <div>
-        <span class="boss-token boss-token-bloom"></span>
-        <strong>30</strong>
-        <small>Residue bloom</small>
-      </div>
-      <div>
-        <span class="boss-token boss-token-mirror"></span>
-        <strong>40</strong>
-        <small>Trail mirror</small>
-      </div>
-      <div>
-        <span class="boss-token boss-token-surface"></span>
-        <strong>50</strong>
-        <small>Final pressure</small>
-      </div>
-    </div>
   </div>
 </section>
 
