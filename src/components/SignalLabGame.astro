@@ -33,13 +33,18 @@
         <button type="button" data-reset>Reset</button>
       </div>
 
-      <div class="keyboard-map console-card" aria-label="Keyboard map">
-        <p class="console-label">Keyboard</p>
-        <div><kbd>WASD</kbd><span>Move</span></div>
-        <div><kbd>Arrows</kbd><span>Move</span></div>
-        <div><kbd>Space</kbd><span>Fire</span></div>
-        <div><kbd>E</kbd><span>Wave</span></div>
-        <div><kbd>Shift</kbd><span>Dash</span></div>
+      <div class="keyboard-map console-card" aria-label="Movement controls">
+        <p class="console-label">Move Map</p>
+        <div><kbd>WASD</kbd><span>Move Mira</span></div>
+        <div><kbd>Arrows</kbd><span>Move Mira</span></div>
+        <div><kbd>Shift</kbd><span>Dash lane</span></div>
+      </div>
+
+      <div class="keyboard-map console-card" aria-label="Action controls">
+        <p class="console-label">Action Map</p>
+        <div><kbd>Space</kbd><span>Fire bolt</span></div>
+        <div><kbd>E</kbd><span>Gradient wave</span></div>
+        <div><kbd>R</kbd><span>Restart run</span></div>
       </div>
     </aside>
 
@@ -278,11 +283,11 @@
       color: string;
     };
     const enemyPalette: Record<EnemyKind, { color: string; glow: string; accent: string }> = {
-      drift: { color: "#c47718", glow: "rgba(196, 119, 24, 0.16)", accent: "#8a5a18" },
-      outlier: { color: "#1f8fc7", glow: "rgba(31, 143, 199, 0.18)", accent: "#155e84" },
-      entropy: { color: "#8f65b8", glow: "rgba(143, 101, 184, 0.17)", accent: "#65458b" },
-      overfit: { color: "#b84a62", glow: "rgba(184, 74, 98, 0.17)", accent: "#843346" },
-      leak: { color: "#d06c2f", glow: "rgba(208, 108, 47, 0.16)", accent: "#92451d" }
+      drift: { color: "#4f5d75", glow: "rgba(79, 93, 117, 0.16)", accent: "#343f52" },
+      outlier: { color: "#0f8ac0", glow: "rgba(15, 138, 192, 0.18)", accent: "#0b5f86" },
+      entropy: { color: "#7a4fb3", glow: "rgba(122, 79, 179, 0.17)", accent: "#56357f" },
+      overfit: { color: "#c83c5a", glow: "rgba(200, 60, 90, 0.17)", accent: "#8e2c41" },
+      leak: { color: "#d66f1f", glow: "rgba(214, 111, 31, 0.16)", accent: "#974b17" }
     };
     const bossPalette: Record<BossKind, { color: string; glow: string; accent: string }> = {
       sentinel: { color: "#c47718", glow: "rgba(196, 119, 24, 0.24)", accent: "#8a5a18" },

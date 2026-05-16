@@ -1411,26 +1411,32 @@ a:hover {
   border-radius: 999px;
 }
 
-.sprite-drift,
 .sprite-batch,
 .sprite-replay,
 .sprite-beacon {
   color: #c47718;
 }
 
+.sprite-drift {
+  color: #4f5d75;
+}
+
 .sprite-outlier,
 .sprite-probe {
-  color: #1f8fc7;
+  color: #0f8ac0;
 }
 
 .sprite-entropy,
 .sprite-regularizer {
-  color: #8f65b8;
+  color: #7a4fb3;
 }
 
-.sprite-overfit,
+.sprite-overfit {
+  color: #c83c5a;
+}
+
 .sprite-leak {
-  color: #b84a62;
+  color: #d66f1f;
 }
 
 .sprite-filter,
