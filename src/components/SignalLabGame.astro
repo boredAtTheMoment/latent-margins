@@ -866,6 +866,10 @@
       updateHud();
     }
 
+    function currentPlayerMoveDelay() {
+      return boss?.kind === "sentinel" ? 7 : playerMoveDelay;
+    }
+
     function fireProjectile(dx: number, dy: number, kind: WeaponKind, damage: number) {
       projectiles.push({
         x: player.x + 0.5,
@@ -998,11 +1002,11 @@
       boss.timer += 1;
       if (boss.kind === "sentinel") {
         boss.dy = 0;
-        if (boss.timer % 6 === 0) boss.dx *= -1;
-        if (boss.timer % 6 === 0) {
-          const axis = boss.timer % 12 === 0 ? "x" : "y";
+        if (boss.timer % 8 === 0) boss.dx *= -1;
+        if (boss.timer % 10 === 0 && !bossScans.some((scan) => scan.warn > 0)) {
+          const axis = boss.timer % 20 === 0 ? "x" : "y";
           bossScans = bossScans.filter((scan) => scan.warn <= 0);
-          queueBossScan(axis, axis === "x" ? player.x : player.y, 76, 10);
+          queueBossScan(axis, axis === "x" ? player.x : player.y, 140, 8);
         }
       }
       if (boss.kind === "ace") {
@@ -1638,7 +1642,7 @@
       if (shotCooldown > 0) shotCooldown -= 1;
       if (dashCooldown > 0) dashCooldown -= 1;
       if (orbitTicks > 0) orbitTicks -= 1;
-      if (!gameOver && tick - lastMoveTick >= playerMoveDelay) {
+      if (!gameOver && tick - lastMoveTick >= currentPlayerMoveDelay()) {
         const direction = activeHeldDirection();
         if (direction) movePlayer(direction);
       }
