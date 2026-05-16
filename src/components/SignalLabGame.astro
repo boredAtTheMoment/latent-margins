@@ -1294,18 +1294,19 @@
           "rgba(47, 111, 88, 0.24)"
         );
       }
+      const enemyRadius = tile * 0.33;
+      gameCtx.save();
       gameCtx.fillStyle = "#ffffff";
       gameCtx.beginPath();
-      gameCtx.arc(x, y, tile * 0.37 * pulse, 0, Math.PI * 2);
+      gameCtx.arc(x, y, enemyRadius + 2.25, 0, Math.PI * 2);
       gameCtx.fill();
       gameCtx.strokeStyle = palette.accent;
       gameCtx.fillStyle = palette.color;
-      gameCtx.lineWidth = 2.6;
+      gameCtx.lineWidth = 2;
       gameCtx.beginPath();
-      gameCtx.arc(x, y, tile * 0.32 * pulse, 0, Math.PI * 2);
+      gameCtx.arc(x, y, enemyRadius, 0, Math.PI * 2);
       gameCtx.fill();
       gameCtx.stroke();
-      gameCtx.lineWidth = 1;
       gameCtx.fillStyle = "rgba(255, 255, 255, 0.78)";
       gameCtx.beginPath();
       gameCtx.arc(x, y, tile * 0.055, 0, Math.PI * 2);
@@ -1315,9 +1316,8 @@
         gameCtx.strokeStyle = palette.color;
         gameCtx.lineWidth = 2;
         gameCtx.beginPath();
-        gameCtx.arc(x, y, tile * 0.58, 0, Math.PI * 2);
+        gameCtx.arc(x, y, tile * 0.56, 0, Math.PI * 2);
         gameCtx.stroke();
-        gameCtx.lineWidth = 1;
         gameCtx.globalAlpha = 1;
       }
       if (hazard.kind === "entropy") {
@@ -1328,7 +1328,6 @@
         gameCtx.arc(x, y, tile * 0.18 * pulse, 0, Math.PI * 2);
         gameCtx.stroke();
         gameCtx.setLineDash([]);
-        gameCtx.lineWidth = 1;
       }
       if (hazard.kind === "overfit") {
         gameCtx.fillStyle = "rgba(255, 255, 255, 0.82)";
@@ -1343,8 +1342,8 @@
         gameCtx.lineTo(x + tile * 0.09, y - tile * 0.07);
         gameCtx.closePath();
         gameCtx.stroke();
-        gameCtx.lineWidth = 1;
       }
+      gameCtx.restore();
     }
 
     function drawBoss(time: number) {
