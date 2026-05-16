@@ -9,6 +9,7 @@ from typing import TypeGuard, cast
 import frontmatter
 
 SLUG_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+POST_EXTENSIONS = (".md", ".mdx")
 REQUIRED_FIELDS = ("title", "description", "pubDate", "tags", "draft")
 
 
@@ -32,7 +33,9 @@ def validate_posts(content_dir: Path) -> list[ValidationError]:
     if not content_dir.exists():
         return [ValidationError(content_dir, "content directory does not exist")]
 
-    for path in sorted(content_dir.glob("*.mdx")):
+    for path in sorted(
+        item for item in content_dir.iterdir() if item.is_file() and item.suffix in POST_EXTENSIONS
+    ):
         errors.extend(validate_post(path))
 
     return errors

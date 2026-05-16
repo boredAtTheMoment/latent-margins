@@ -29,6 +29,13 @@ def test_valid_post_passes(tmp_path: Path) -> None:
     assert validate_post(post) == []
 
 
+def test_validate_posts_includes_markdown_and_mdx(tmp_path: Path) -> None:
+    write_post(tmp_path / "valid-markdown.md")
+    write_post(tmp_path / "valid-mdx.mdx")
+
+    assert validate_posts(tmp_path) == []
+
+
 def test_invalid_slug_is_reported(tmp_path: Path) -> None:
     post = tmp_path / "Invalid Slug.mdx"
     write_post(post)
