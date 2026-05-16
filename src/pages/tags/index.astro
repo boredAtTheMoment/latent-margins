@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { withBase } from "../../lib/paths";
 import { formatPostDate, publishedPosts, tagCounts } from "../../lib/posts";
 
 const posts = publishedPosts(await getCollection("blog"));
@@ -59,7 +60,7 @@ const slugifyTag = (tag: string) => tag.toLowerCase().replaceAll(" ", "-");
                     {formatPostDate(post.data.pubDate)}
                   </time>
                   <h3>
-                    <a href={`/blog/${post.slug}/`}>{post.data.title}</a>
+                    <a href={withBase(`/blog/${post.slug}/`)}>{post.data.title}</a>
                   </h3>
                 </article>
               ))}

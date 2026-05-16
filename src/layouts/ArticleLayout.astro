@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
+import { withBase } from "../lib/paths";
 
 type Heading = {
   depth: number;
@@ -91,7 +92,7 @@ const bibtexCitation = `@article{${citationKey},
           tags.length ? (
             <div class="tags" aria-label="Tags">
               {tags.map((tag) => (
-                <a class="tag" href={`/tags/#${tag}`}>
+                <a class="tag" href={withBase(`/tags/#${tag}`)}>
                   {tag}
                 </a>
               ))}
@@ -109,9 +110,15 @@ const bibtexCitation = `@article{${citationKey},
       </section>
       <footer class="article-footer">
         <nav class="article-bottom-nav" aria-label="Post navigation">
-          {previousPost ? <a href={`/blog/${previousPost.slug}/`}>prev</a> : <span>prev</span>}
+          {
+            previousPost ? (
+              <a href={withBase(`/blog/${previousPost.slug}/`)}>prev</a>
+            ) : (
+              <span>prev</span>
+            )
+          }
           <a href="#top">back to top</a>
-          {nextPost ? <a href={`/blog/${nextPost.slug}/`}>next</a> : <span>next</span>}
+          {nextPost ? <a href={withBase(`/blog/${nextPost.slug}/`)}>next</a> : <span>next</span>}
         </nav>
       </footer>
     </article>

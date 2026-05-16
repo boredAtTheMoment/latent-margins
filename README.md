@@ -1,7 +1,11 @@
 # Latent Margins
 
-A static-first technical blog stack for code-heavy writing, Mermaid diagrams, and uv-powered Python
-content tooling.
+A static-first personal blog for machine learning notes, code-heavy writing, Mermaid diagrams, and
+uv-powered Python content tooling.
+
+The project is configured for GitHub Pages project hosting at:
+
+`https://boredatthemoment.github.io/latent-margins/`
 
 ## Local Development
 

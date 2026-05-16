@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { withBase } from "../lib/paths";
 
 const {
   title = "Latent Margins",
@@ -18,14 +19,14 @@ const {
   <body>
     <div class="site-shell">
       <header class="site-header">
-        <a class="brand" href="/">Latent Margins</a>
+        <a class="brand" href={withBase("/")}>Latent Margins</a>
         <nav class="nav" aria-label="Primary navigation">
-          <a href="/about/">About me</a>
-          <a href="/resume/">Resume</a>
-          <a href="/blog/">Blog</a>
-          <a href="/tags/">Tags</a>
-          <a href="/break/">Margin Runner</a>
-          <a href="/rss.xml">RSS</a>
+          <a href={withBase("/about/")}>About me</a>
+          <a href={withBase("/resume/")}>Resume</a>
+          <a href={withBase("/blog/")}>Blog</a>
+          <a href={withBase("/tags/")}>Tags</a>
+          <a href={withBase("/break/")}>Margin Runner</a>
+          <a href={withBase("/rss.xml")}>RSS</a>
         </nav>
       </header>
       <slot />

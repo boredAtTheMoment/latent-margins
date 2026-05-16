@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { withBase } from "../../lib/paths";
 ---
 
 <BaseLayout title="About me | Latent Margins" description="About the person behind Latent Margins.">
@@ -14,7 +15,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         </p>
       </div>
       <figure class="profile-photo">
-        <img src="/images/karthik-shivaram-profile.jpeg" alt="Karthik Shivaram" />
+        <img src={withBase("/images/karthik-shivaram-profile.jpeg")} alt="Karthik Shivaram" />
       </figure>
     </section>
 

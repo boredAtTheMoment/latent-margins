@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { withBase } from "../lib/paths";
 import { formatPostDate, publishedPosts } from "../lib/posts";
 
 const posts = publishedPosts(await getCollection("blog"));
@@ -18,8 +19,8 @@ const latestPosts = posts.slice(0, 3);
           and the software details that make experiments easier to understand.
         </p>
         <div class="home-actions">
-          <a class="button-link" href="/blog/">Read the blog</a>
-          <a class="text-link" href="/about/">About me</a>
+          <a class="button-link" href={withBase("/blog/")}>Read the blog</a>
+          <a class="text-link" href={withBase("/about/")}>About me</a>
         </div>
       </div>
       <div class="ml-artifact" aria-label="Animated scientific field diagram">
@@ -35,7 +36,7 @@ const latestPosts = posts.slice(0, 3);
           Play Margin Runner, a tiny browser-side game about collecting signal, dodging noise, and
           keeping a small system alive between posts.
         </p>
-        <a class="button-link" href="/break/">Play Margin Runner</a>
+        <a class="button-link" href={withBase("/break/")}>Play Margin Runner</a>
       </div>
       <div class="promo-board" aria-hidden="true">
         <span class="promo-sprite promo-player"></span>
@@ -62,7 +63,7 @@ const latestPosts = posts.slice(0, 3);
               </time>
             </div>
             <h2>
-              <a href={`/blog/${post.slug}/`}>{post.data.title}</a>
+              <a href={withBase(`/blog/${post.slug}/`)}>{post.data.title}</a>
             </h2>
             <p>{post.data.description}</p>
             <div class="tags">

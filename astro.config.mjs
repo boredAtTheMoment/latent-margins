@@ -94,7 +94,8 @@ function rehypeCitationReferences() {
 }
 
 export default defineConfig({
-  site: "https://example.com",
+  site: "https://boredatthemoment.github.io",
+  base: "/latent-margins",
   integrations: [mdx(), sitemap()],
   markdown: {
     shikiConfig: {
