@@ -1281,42 +1281,99 @@ a:hover {
 }
 
 .game-hud {
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 10px;
   font-family: var(--font-prose);
   text-transform: none;
+}
+
+.hud-primary {
+  grid-template-columns: minmax(118px, 0.7fr) minmax(78px, 0.38fr) minmax(160px, 1.5fr);
+  gap: 8px;
+}
+
+.hud-tools {
+  gap: 8px;
 }
 
 .hud-cell,
 .hud-tools span,
 .hud-status {
-  border: 1px solid rgba(47, 111, 88, 0.2);
-  border-radius: 4px;
-  background: #ffffff;
+  min-width: 0;
+  border: 1px solid rgba(47, 111, 88, 0.14);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.84);
   color: var(--muted);
+}
+
+.hud-cell,
+.hud-tools span {
+  display: grid;
+  gap: 3px;
+  min-height: 54px;
+  padding: 8px 10px;
+}
+
+.hud-tools span {
+  min-height: 46px;
+  padding: 7px 9px;
+}
+
+.hud-cell-score {
+  border-color: rgba(47, 111, 88, 0.24);
+  background:
+    linear-gradient(90deg, rgba(20, 143, 104, 0.08), rgba(255, 255, 255, 0.92) 62%), #ffffff;
 }
 
 .game-hud small {
   color: var(--soft);
   font-family: var(--font-prose);
-  font-size: 0.72rem;
+  font-size: 0.64rem;
   font-weight: 520;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .game-hud strong,
 .hud-cell-score strong {
   color: var(--accent);
-  font-size: 1rem;
-  font-weight: 560;
+  font-size: 0.98rem;
+  font-weight: 620;
+  line-height: 1;
+}
+
+.hud-cell-score strong {
+  font-size: 1.18rem;
+}
+
+.hud-tools strong {
+  font-size: 0.86rem;
+  font-weight: 600;
 }
 
 .hud-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   color: var(--accent);
-  font-size: 0.98rem;
-  font-weight: 560;
+  font-size: 0.96rem;
+  font-weight: 620;
   letter-spacing: 0;
+  min-height: 54px;
+  padding: 8px 14px;
+  text-align: right;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.62), rgba(20, 143, 104, 0.08)), #ffffff;
+}
+
+.hud-status::before {
+  width: 8px;
+  height: 8px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: #148f68;
+  box-shadow: 0 0 0 4px rgba(20, 143, 104, 0.1);
+  content: "";
 }
 
 .game-canvas {
