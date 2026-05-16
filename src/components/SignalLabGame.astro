@@ -1179,8 +1179,8 @@
       const x = cx(player.x);
       const y = cy(player.y);
       const pulse = 1 + Math.sin(time / 240) * 0.08;
-      const dirX = lastDirection.dx || 1;
-      const dirY = lastDirection.dy || 0;
+      const dirX = lastDirection.dx;
+      const dirY = lastDirection.dy;
       const perpX = -dirY;
       const perpY = dirX;
       const nose = tile * 0.46 * pulse;
