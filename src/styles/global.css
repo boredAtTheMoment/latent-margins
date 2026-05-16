@@ -1532,7 +1532,10 @@ a:hover {
   color: #f0a51f;
 }
 
-.sprite-outlier,
+.sprite-outlier {
+  color: #ff5b45;
+}
+
 .sprite-regularizer {
   color: #16a7df;
 }
