@@ -1082,9 +1082,20 @@
       radius = tile * 0.28,
       ring = false
     ) {
+      gameCtx.save();
+      gameCtx.fillStyle = "#ffffff";
+      gameCtx.strokeStyle = "#ffffff";
+      gameCtx.lineWidth = ring ? 5 : 1;
+      gameCtx.beginPath();
+      gameCtx.arc(x, y, radius + (ring ? 0 : 2.5), 0, Math.PI * 2);
+      if (ring) {
+        gameCtx.stroke();
+      } else {
+        gameCtx.fill();
+      }
       gameCtx.fillStyle = color;
       gameCtx.strokeStyle = color;
-      gameCtx.lineWidth = 2;
+      gameCtx.lineWidth = ring ? 3 : 2;
       gameCtx.beginPath();
       gameCtx.arc(x, y, radius, 0, Math.PI * 2);
       if (ring) {
@@ -1092,6 +1103,7 @@
       } else {
         gameCtx.fill();
       }
+      gameCtx.restore();
       gameCtx.lineWidth = 1;
     }
 
@@ -1276,7 +1288,7 @@
       const x = cx(hx);
       const y = cy(hy);
       const pulse = 1 + Math.sin(time / 260 + hazard.timer) * 0.12;
-      drawFieldHalo(x, y, palette.color, tile * 0.92, 0.12);
+      drawFieldHalo(x, y, palette.color, tile * 0.86, 0.08);
       if (hazard.kind === "overfit" && hazard.target) {
         drawDottedLine(x, y, cx(hazard.target.x), cy(hazard.target.y), "rgba(184, 74, 98, 0.32)");
       }
@@ -1289,11 +1301,15 @@
           "rgba(47, 111, 88, 0.24)"
         );
       }
+      gameCtx.fillStyle = "#ffffff";
+      gameCtx.beginPath();
+      gameCtx.arc(x, y, tile * 0.37 * pulse, 0, Math.PI * 2);
+      gameCtx.fill();
       gameCtx.strokeStyle = palette.accent;
       gameCtx.fillStyle = palette.color;
-      gameCtx.lineWidth = 2;
+      gameCtx.lineWidth = 2.6;
       gameCtx.beginPath();
-      gameCtx.arc(x, y, tile * 0.28 * pulse, 0, Math.PI * 2);
+      gameCtx.arc(x, y, tile * 0.32 * pulse, 0, Math.PI * 2);
       gameCtx.fill();
       gameCtx.stroke();
       gameCtx.lineWidth = 1;
@@ -1549,7 +1565,7 @@
         const shake = Math.min(6, shakeTicks * 0.36);
         gameCtx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
       }
-      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.08)";
+      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.045)";
       for (let x = 0; x <= canvasWidth; x += tile) {
         gameCtx.beginPath();
         gameCtx.moveTo(x, 0);
@@ -1562,7 +1578,7 @@
         gameCtx.lineTo(canvasWidth, y);
         gameCtx.stroke();
       }
-      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.11)";
+      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.055)";
       gameCtx.beginPath();
       gameCtx.moveTo(0, canvasHeight * 0.32);
       gameCtx.lineTo(canvasWidth, canvasHeight * 0.18);
@@ -1572,7 +1588,7 @@
       gameCtx.lineTo(canvasWidth, canvasHeight * 0.52);
       gameCtx.stroke();
       for (let band = 0; band < 4; band += 1) {
-        gameCtx.globalAlpha = 0.18;
+        gameCtx.globalAlpha = 0.08;
         gameCtx.strokeStyle = band % 2 ? "#1f8fc7" : "#148f68";
         gameCtx.beginPath();
         for (let point = 0; point <= 80; point += 1) {
@@ -1587,7 +1603,7 @@
         gameCtx.stroke();
       }
       gameCtx.globalAlpha = 1;
-      gameCtx.strokeStyle = "rgba(29, 33, 28, 0.22)";
+      gameCtx.strokeStyle = "rgba(29, 33, 28, 0.3)";
       gameCtx.lineWidth = 1;
       gameCtx.strokeRect(8, 8, canvasWidth - 16, canvasHeight - 16);
       gameCtx.lineWidth = 1;
