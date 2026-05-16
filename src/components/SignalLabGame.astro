@@ -218,6 +218,7 @@
     const boardWidth = game.width / tile;
     const boardHeight = game.height / tile;
     const targetScore = 50;
+    const playerMoveDelay = 11;
     const bossGates = [10, 20, 30, 40, 50];
     type EnemyKind = "drift" | "outlier" | "entropy" | "overfit" | "leak";
     type Enemy = {
@@ -1518,7 +1519,7 @@
       if (shotCooldown > 0) shotCooldown -= 1;
       if (dashCooldown > 0) dashCooldown -= 1;
       if (orbitTicks > 0) orbitTicks -= 1;
-      if (!gameOver && tick - lastMoveTick >= 7) {
+      if (!gameOver && tick - lastMoveTick >= playerMoveDelay) {
         const direction = activeHeldDirection();
         if (direction) movePlayer(direction);
       }
