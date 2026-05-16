@@ -35,11 +35,11 @@
 
       <div class="keyboard-map console-card" aria-label="Keyboard map">
         <p class="console-label">Keyboard</p>
-        <div><kbd>WASD</kbd><span>Move Mira</span></div>
-        <div><kbd>Arrows</kbd><span>Move Mira</span></div>
-        <div><kbd>Space</kbd><span>Fire the current weapon.</span></div>
-        <div><kbd>E</kbd><span>Release a stabilizing wave.</span></div>
-        <div><kbd>Shift</kbd><span>Dash three cells forward.</span></div>
+        <div><kbd>WASD</kbd><span>Move</span></div>
+        <div><kbd>Arrows</kbd><span>Move</span></div>
+        <div><kbd>Space</kbd><span>Fire</span></div>
+        <div><kbd>E</kbd><span>Wave</span></div>
+        <div><kbd>Shift</kbd><span>Dash</span></div>
       </div>
     </aside>
 
@@ -75,36 +75,102 @@
     <aside class="lab-console lab-console-right" aria-label="Margin Runner reference">
       <div class="enemy-guide console-card" aria-label="Noise guide">
         <p class="console-label">Noise Processes</p>
-        <div>
-          <span class="sprite-token sprite-drift"></span>Drift follows predictable gradients.
+        <div class="legend-list">
+          <div>
+            <span class="sprite-token sprite-drift"></span><strong>Drift</strong><small
+              >straight</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-outlier"></span><strong>Outlier</strong><small
+              >jumps</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-entropy"></span><strong>Entropy</strong><small
+              >residue</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-overfit"></span><strong>Overfit</strong><small
+              >tracks you</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-leak"></span><strong>Leak</strong><small
+              >steals signal</small
+            >
+          </div>
         </div>
-        <div><span class="sprite-token sprite-outlier"></span>Outlier pauses, then jumps.</div>
-        <div>
-          <span class="sprite-token sprite-entropy"></span>Entropy leaves corrupt residue.
-        </div>
-        <div>
-          <span class="sprite-token sprite-overfit"></span>Overfit tracks your recent path.
-        </div>
-        <div><span class="sprite-token sprite-leak"></span>Leak steals loose signal samples.</div>
-        <p>Evaluation gates appear at 10, 20, 30, 40, and 50 signal.</p>
       </div>
 
       <div class="power-guide console-card" aria-label="Power-up guide">
         <p class="console-label">Interventions</p>
-        <div><span class="sprite-token sprite-filter"></span>Filter absorbs one noisy contact.</div>
-        <div>
-          <span class="sprite-token sprite-batch"></span>Splitter applies forked filters.
+        <div class="legend-list">
+          <div>
+            <span class="sprite-token sprite-filter"></span><strong>Filter</strong><small
+              >blocks hit</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-batch"></span><strong>Splitter</strong><small
+              >spread shot</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-regularizer"></span><strong>Beam</strong><small
+              >pierces</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-probe"></span><strong>Wave</strong><small
+              >charges E</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-replay"></span><strong>Orbit</strong><small
+              >near guard</small
+            >
+          </div>
+          <div>
+            <span class="sprite-token sprite-beacon"></span><strong>Cache</strong><small
+              >+signal</small
+            >
+          </div>
         </div>
-        <div>
-          <span class="sprite-token sprite-regularizer"></span>Attention beam clears noise.
-        </div>
-        <div><span class="sprite-token sprite-probe"></span>Wave cell refills stability.</div>
-        <div>
-          <span class="sprite-token sprite-replay"></span>Orbit guard clears nearby noise.
-        </div>
-        <div><span class="sprite-token sprite-beacon"></span>Signal cache grants clean signal.</div>
       </div>
     </aside>
+  </div>
+
+  <div class="boss-guide console-card" aria-label="Boss gates">
+    <p class="console-label">Boss Gates</p>
+    <div class="boss-guide-list">
+      <div>
+        <span class="boss-token boss-token-sentinel"></span>
+        <strong>10</strong>
+        <small>Sentinel scan</small>
+      </div>
+      <div>
+        <span class="boss-token boss-token-ace"></span>
+        <strong>20</strong>
+        <small>Jump chase</small>
+      </div>
+      <div>
+        <span class="boss-token boss-token-bloom"></span>
+        <strong>30</strong>
+        <small>Residue bloom</small>
+      </div>
+      <div>
+        <span class="boss-token boss-token-mirror"></span>
+        <strong>40</strong>
+        <small>Trail mirror</small>
+      </div>
+      <div>
+        <span class="boss-token boss-token-surface"></span>
+        <strong>50</strong>
+        <small>Final pressure</small>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -1147,14 +1213,6 @@
       const y = cy(hy);
       const pulse = 1 + Math.sin(time / 260 + hazard.timer) * 0.12;
       drawFieldHalo(x, y, palette.color, tile * 0.92, 0.12);
-      if (hazard.kind === "outlier" && hazard.timer % 5 === 4) {
-        gameCtx.globalAlpha = 0.34;
-        gameCtx.strokeStyle = palette.color;
-        gameCtx.beginPath();
-        gameCtx.arc(x, y, tile * 0.66, 0, Math.PI * 2);
-        gameCtx.stroke();
-        gameCtx.globalAlpha = 1;
-      }
       if (hazard.kind === "overfit" && hazard.target) {
         drawDottedLine(x, y, cx(hazard.target.x), cy(hazard.target.y), "rgba(184, 74, 98, 0.32)");
       }
@@ -1167,47 +1225,43 @@
           "rgba(47, 111, 88, 0.24)"
         );
       }
-      if (hazard.kind === "drift") {
-        gameCtx.strokeStyle = palette.color;
-        gameCtx.lineWidth = 3;
-        gameCtx.beginPath();
-        gameCtx.moveTo(x - tile * 0.38, y);
-        gameCtx.lineTo(x + tile * 0.38, y);
-        gameCtx.stroke();
-        gameCtx.lineWidth = 1;
-      }
+      gameCtx.strokeStyle = palette.color;
+      gameCtx.fillStyle = "rgba(255, 255, 255, 0.82)";
+      gameCtx.lineWidth = 2;
+      gameCtx.beginPath();
+      gameCtx.arc(x, y, tile * 0.28 * pulse, 0, Math.PI * 2);
+      gameCtx.fill();
+      gameCtx.stroke();
+      gameCtx.lineWidth = 1;
+      drawObservedPoint(x, y, palette.color, tile * 0.085, false);
       if (hazard.kind === "outlier") {
-        gameCtx.save();
-        gameCtx.translate(x, y);
-        gameCtx.rotate(Math.PI / 4);
+        gameCtx.globalAlpha = hazard.timer % 5 === 4 ? 0.56 : 0.24;
         gameCtx.strokeStyle = palette.color;
-        gameCtx.lineWidth = 2;
-        gameCtx.strokeRect(
-          -tile * 0.22 * pulse,
-          -tile * 0.22 * pulse,
-          tile * 0.44 * pulse,
-          tile * 0.44 * pulse
-        );
-        gameCtx.restore();
+        gameCtx.beginPath();
+        gameCtx.arc(x, y, tile * 0.58, 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.globalAlpha = 1;
       }
       if (hazard.kind === "entropy") {
         gameCtx.strokeStyle = palette.color;
         gameCtx.setLineDash([3, 4]);
         gameCtx.beginPath();
-        gameCtx.arc(x, y, tile * 0.34 * pulse, 0, Math.PI * 2);
+        gameCtx.arc(x, y, tile * 0.46 * pulse, 0, Math.PI * 2);
         gameCtx.stroke();
         gameCtx.setLineDash([]);
       }
       if (hazard.kind === "overfit") {
-        drawObservedPoint(x, y, palette.color, tile * 0.28, true);
         gameCtx.fillStyle = palette.color;
         gameCtx.fillRect(x - 6, y - 2, 12, 4);
       }
       if (hazard.kind === "leak") {
-        gameCtx.fillStyle = palette.color;
+        gameCtx.strokeStyle = palette.color;
         gameCtx.beginPath();
-        gameCtx.ellipse(x, y, tile * 0.18, tile * 0.34, 0, 0, Math.PI * 2);
-        gameCtx.fill();
+        gameCtx.moveTo(x, y + tile * 0.33);
+        gameCtx.lineTo(x - tile * 0.13, y + tile * 0.08);
+        gameCtx.lineTo(x + tile * 0.13, y + tile * 0.08);
+        gameCtx.closePath();
+        gameCtx.stroke();
       }
     }
 
@@ -1219,21 +1273,37 @@
       const size = boss.size * tile;
       const radius = size * (0.42 + Math.sin(time / 260) * 0.025);
       drawFieldHalo(originX, originY, palette.color, size * 0.92, 0.18);
-      gameCtx.strokeStyle = palette.color;
-      gameCtx.lineWidth = 3;
+      gameCtx.fillStyle = "rgba(255, 255, 255, 0.84)";
+      gameCtx.strokeStyle = palette.accent;
+      gameCtx.lineWidth = 2.5;
       gameCtx.beginPath();
       gameCtx.arc(originX, originY, radius, 0, Math.PI * 2);
+      gameCtx.fill();
       gameCtx.stroke();
-      gameCtx.lineWidth = 1;
+      gameCtx.strokeStyle = palette.color;
+      gameCtx.lineWidth = 2;
+      gameCtx.beginPath();
+      gameCtx.arc(originX, originY, radius * 0.72, 0, Math.PI * 2);
+      gameCtx.stroke();
       gameCtx.fillStyle = palette.color;
       if (boss.kind === "sentinel") {
-        gameCtx.fillRect(originX - radius * 0.72, originY - 3, radius * 1.44, 6);
+        for (const offset of [-0.38, 0, 0.38]) {
+          gameCtx.fillRect(
+            originX - radius * 0.68,
+            originY + radius * offset - 2,
+            radius * 1.36,
+            4
+          );
+        }
       }
       if (boss.kind === "ace") {
         gameCtx.save();
         gameCtx.translate(originX, originY);
         gameCtx.rotate(Math.PI / 4);
-        gameCtx.strokeRect(-radius * 0.58, -radius * 0.58, radius * 1.16, radius * 1.16);
+        gameCtx.strokeStyle = palette.color;
+        gameCtx.strokeRect(-radius * 0.56, -radius * 0.56, radius * 1.12, radius * 1.12);
+        gameCtx.fillRect(-3, -radius * 0.62, 6, radius * 1.24);
+        gameCtx.fillRect(-radius * 0.62, -3, radius * 1.24, 6);
         gameCtx.restore();
       }
       if (boss.kind === "bloom") {
@@ -1249,17 +1319,34 @@
         }
       }
       if (boss.kind === "mirror") {
-        gameCtx.strokeRect(
-          originX - radius * 0.62,
-          originY - radius * 0.62,
-          radius * 1.24,
-          radius * 1.24
-        );
+        gameCtx.save();
+        gameCtx.translate(originX, originY);
+        gameCtx.rotate(Math.sin(time / 520) * 0.18);
+        gameCtx.strokeRect(-radius * 0.6, -radius * 0.6, radius * 1.2, radius * 1.2);
+        gameCtx.beginPath();
+        gameCtx.moveTo(-radius * 0.42, radius * 0.42);
+        gameCtx.lineTo(radius * 0.42, -radius * 0.42);
+        gameCtx.stroke();
+        gameCtx.restore();
       }
       if (boss.kind === "surface") {
-        gameCtx.fillRect(originX - radius, originY - 3, radius * 2, 6);
-        gameCtx.fillRect(originX - 3, originY - radius, 6, radius * 2);
+        gameCtx.setLineDash([5, 5]);
+        gameCtx.beginPath();
+        gameCtx.arc(originX, originY, radius * 0.92, 0, Math.PI * 2);
+        gameCtx.stroke();
+        gameCtx.setLineDash([]);
+        for (let spoke = 0; spoke < 4; spoke += 1) {
+          const theta = (spoke / 4) * Math.PI * 2 + time / 900;
+          gameCtx.beginPath();
+          gameCtx.moveTo(originX, originY);
+          gameCtx.lineTo(
+            originX + Math.cos(theta) * radius * 0.9,
+            originY + Math.sin(theta) * radius * 0.9
+          );
+          gameCtx.stroke();
+        }
       }
+      gameCtx.lineWidth = 1;
       gameCtx.fillStyle = "rgba(29, 33, 28, 0.16)";
       gameCtx.fillRect(originX - size * 0.42, originY - radius - 18, size * 0.84, 5);
       gameCtx.fillStyle = palette.color;
