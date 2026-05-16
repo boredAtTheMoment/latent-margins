@@ -215,8 +215,10 @@
     const cacheValue = cacheNode;
     const stateValue = stateNode;
     const tile = 32;
-    const boardWidth = game.width / tile;
-    const boardHeight = game.height / tile;
+    const canvasWidth = 864;
+    const canvasHeight = 480;
+    const boardWidth = canvasWidth / tile;
+    const boardHeight = canvasHeight / tile;
     const targetScore = 50;
     const playerMoveDelay = 11;
     const bossGates = [10, 20, 30, 40, 50];
@@ -340,6 +342,29 @@
     let flash: { color: string; life: number; total: number } | null = null;
     let playerAlert: { color: string; life: number; total: number } | null = null;
     let message = "Collect signal";
+
+    function syncCanvasResolution() {
+      const rect = game.getBoundingClientRect();
+      const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+      const displayWidth = Math.max(1, Math.round(rect.width));
+      const displayHeight = Math.max(1, Math.round(rect.height));
+      const backingWidth = Math.round(displayWidth * pixelRatio);
+      const backingHeight = Math.round(displayHeight * pixelRatio);
+
+      if (game.width !== backingWidth || game.height !== backingHeight) {
+        game.width = backingWidth;
+        game.height = backingHeight;
+      }
+
+      gameCtx.setTransform(
+        (displayWidth / canvasWidth) * pixelRatio,
+        0,
+        0,
+        (displayHeight / canvasHeight) * pixelRatio,
+        0,
+        0
+      );
+    }
 
     function randomCell() {
       return {
@@ -1191,10 +1216,10 @@
         gameCtx.beginPath();
         if (scan.axis === "x") {
           gameCtx.moveTo(position, 10);
-          gameCtx.lineTo(position, game.height - 10);
+          gameCtx.lineTo(position, canvasHeight - 10);
         } else {
           gameCtx.moveTo(10, position);
-          gameCtx.lineTo(game.width - 10, position);
+          gameCtx.lineTo(canvasWidth - 10, position);
         }
         gameCtx.stroke();
         gameCtx.restore();
@@ -1264,15 +1289,15 @@
           "rgba(47, 111, 88, 0.24)"
         );
       }
-      gameCtx.strokeStyle = palette.color;
-      gameCtx.fillStyle = "rgba(255, 255, 255, 0.82)";
+      gameCtx.strokeStyle = palette.accent;
+      gameCtx.fillStyle = palette.color;
       gameCtx.lineWidth = 2;
       gameCtx.beginPath();
       gameCtx.arc(x, y, tile * 0.28 * pulse, 0, Math.PI * 2);
       gameCtx.fill();
       gameCtx.stroke();
       gameCtx.lineWidth = 1;
-      drawObservedPoint(x, y, palette.color, tile * 0.085, false);
+      drawObservedPoint(x, y, "rgba(255, 255, 255, 0.88)", tile * 0.085, false);
       if (hazard.kind === "outlier") {
         gameCtx.globalAlpha = hazard.timer % 5 === 4 ? 0.56 : 0.24;
         gameCtx.strokeStyle = palette.color;
@@ -1290,11 +1315,11 @@
         gameCtx.setLineDash([]);
       }
       if (hazard.kind === "overfit") {
-        gameCtx.fillStyle = palette.color;
+        gameCtx.fillStyle = "rgba(255, 255, 255, 0.86)";
         gameCtx.fillRect(x - 6, y - 2, 12, 4);
       }
       if (hazard.kind === "leak") {
-        gameCtx.strokeStyle = palette.color;
+        gameCtx.strokeStyle = "rgba(255, 255, 255, 0.86)";
         gameCtx.beginPath();
         gameCtx.moveTo(x, y + tile * 0.33);
         gameCtx.lineTo(x - tile * 0.13, y + tile * 0.08);
@@ -1449,48 +1474,102 @@
       const alpha = Math.max(0, flash.life / flash.total) * 0.16;
       gameCtx.fillStyle = flash.color;
       gameCtx.globalAlpha = alpha;
-      gameCtx.fillRect(0, 0, game.width, game.height);
+      gameCtx.fillRect(0, 0, canvasWidth, canvasHeight);
       gameCtx.globalAlpha = Math.min(0.36, alpha * 2);
       gameCtx.strokeStyle = flash.color;
       gameCtx.lineWidth = 5;
-      gameCtx.strokeRect(8, 8, game.width - 16, game.height - 16);
+      gameCtx.strokeRect(8, 8, canvasWidth - 16, canvasHeight - 16);
       gameCtx.lineWidth = 1;
       gameCtx.globalAlpha = 1;
     }
 
+    function drawGameOverScreen() {
+      const won = runWon;
+      const panelWidth = 430;
+      const panelHeight = 168;
+      const panelX = canvasWidth / 2 - panelWidth / 2;
+      const panelY = canvasHeight / 2 - panelHeight / 2;
+      const accent = won ? "#148f68" : "#b84a62";
+      const title = won ? "System stabilized" : "Run collapsed";
+      const detail = won
+        ? "Clean signal reached the margin."
+        : boss
+          ? `${boss.name} held the field.`
+          : "Noise overwhelmed the field.";
+
+      gameCtx.fillStyle = "rgba(255, 255, 255, 0.86)";
+      gameCtx.fillRect(0, 0, canvasWidth, canvasHeight);
+      gameCtx.fillStyle = "rgba(47, 111, 88, 0.06)";
+      gameCtx.fillRect(panelX + 8, panelY + 8, panelWidth, panelHeight);
+      gameCtx.fillStyle = "#ffffff";
+      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.26)";
+      gameCtx.lineWidth = 1.5;
+      gameCtx.beginPath();
+      gameCtx.roundRect(panelX, panelY, panelWidth, panelHeight, 8);
+      gameCtx.fill();
+      gameCtx.stroke();
+
+      gameCtx.strokeStyle = accent;
+      gameCtx.lineWidth = 3;
+      gameCtx.beginPath();
+      gameCtx.moveTo(panelX + 24, panelY + 28);
+      gameCtx.lineTo(panelX + panelWidth - 24, panelY + 28);
+      gameCtx.stroke();
+      gameCtx.lineWidth = 1;
+
+      gameCtx.fillStyle = accent;
+      gameCtx.font = "700 27px Georgia, serif";
+      gameCtx.textAlign = "center";
+      gameCtx.fillText(title, canvasWidth / 2, panelY + 72);
+      gameCtx.fillStyle = "#687064";
+      gameCtx.font = "500 15px Georgia, serif";
+      gameCtx.fillText(detail, canvasWidth / 2, panelY + 101);
+
+      gameCtx.fillStyle = "rgba(47, 111, 88, 0.08)";
+      gameCtx.strokeStyle = "rgba(47, 111, 88, 0.22)";
+      gameCtx.beginPath();
+      gameCtx.roundRect(canvasWidth / 2 - 112, panelY + 122, 224, 34, 17);
+      gameCtx.fill();
+      gameCtx.stroke();
+      gameCtx.fillStyle = "#2f6f58";
+      gameCtx.font = "700 14px Georgia, serif";
+      gameCtx.fillText("Press R to restart", canvasWidth / 2, panelY + 144);
+    }
+
     function drawGame(time = 0) {
-      const background = gameCtx.createLinearGradient(0, 0, game.width, game.height);
+      syncCanvasResolution();
+      const background = gameCtx.createLinearGradient(0, 0, canvasWidth, canvasHeight);
       background.addColorStop(0, "#ffffff");
       background.addColorStop(0.52, "#ffffff");
       background.addColorStop(1, "#ffffff");
       gameCtx.fillStyle = background;
-      gameCtx.fillRect(0, 0, game.width, game.height);
+      gameCtx.fillRect(0, 0, canvasWidth, canvasHeight);
       gameCtx.save();
       if (shakeTicks > 0) {
         const shake = Math.min(6, shakeTicks * 0.36);
         gameCtx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
       }
       gameCtx.strokeStyle = "rgba(47, 111, 88, 0.08)";
-      for (let x = 0; x <= game.width; x += tile) {
+      for (let x = 0; x <= canvasWidth; x += tile) {
         gameCtx.beginPath();
         gameCtx.moveTo(x, 0);
-        gameCtx.lineTo(x, game.height);
+        gameCtx.lineTo(x, canvasHeight);
         gameCtx.stroke();
       }
-      for (let y = 0; y <= game.height; y += tile) {
+      for (let y = 0; y <= canvasHeight; y += tile) {
         gameCtx.beginPath();
         gameCtx.moveTo(0, y);
-        gameCtx.lineTo(game.width, y);
+        gameCtx.lineTo(canvasWidth, y);
         gameCtx.stroke();
       }
       gameCtx.strokeStyle = "rgba(47, 111, 88, 0.11)";
       gameCtx.beginPath();
-      gameCtx.moveTo(0, game.height * 0.32);
-      gameCtx.lineTo(game.width, game.height * 0.18);
-      gameCtx.moveTo(game.width * 0.2, game.height);
-      gameCtx.lineTo(game.width * 0.78, 0);
-      gameCtx.moveTo(game.width * 0.64, game.height);
-      gameCtx.lineTo(game.width, game.height * 0.52);
+      gameCtx.moveTo(0, canvasHeight * 0.32);
+      gameCtx.lineTo(canvasWidth, canvasHeight * 0.18);
+      gameCtx.moveTo(canvasWidth * 0.2, canvasHeight);
+      gameCtx.lineTo(canvasWidth * 0.78, 0);
+      gameCtx.moveTo(canvasWidth * 0.64, canvasHeight);
+      gameCtx.lineTo(canvasWidth, canvasHeight * 0.52);
       gameCtx.stroke();
       for (let band = 0; band < 4; band += 1) {
         gameCtx.globalAlpha = 0.18;
@@ -1498,9 +1577,9 @@
         gameCtx.beginPath();
         for (let point = 0; point <= 80; point += 1) {
           const t = point / 80;
-          const x = t * game.width;
+          const x = t * canvasWidth;
           const y =
-            game.height * (0.22 + band * 0.15) +
+            canvasHeight * (0.22 + band * 0.15) +
             Math.sin(t * Math.PI * 2 + time / 1700 + band) * 18;
           if (point === 0) gameCtx.moveTo(x, y);
           else gameCtx.lineTo(x, y);
@@ -1510,7 +1589,7 @@
       gameCtx.globalAlpha = 1;
       gameCtx.strokeStyle = "rgba(29, 33, 28, 0.22)";
       gameCtx.lineWidth = 1;
-      gameCtx.strokeRect(8, 8, game.width - 16, game.height - 16);
+      gameCtx.strokeRect(8, 8, canvasWidth - 16, canvasHeight - 16);
       gameCtx.lineWidth = 1;
       if (!boss) drawSignal(time);
       if (!boss) drawDecoys();
@@ -1529,23 +1608,7 @@
       gameCtx.restore();
       drawFlashOverlay();
       if (gameOver) {
-        gameCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        gameCtx.fillRect(0, 0, game.width, game.height);
-        gameCtx.fillStyle = runWon ? "#148f68" : "#b84a62";
-        gameCtx.font = "600 28px Georgia, serif";
-        gameCtx.textAlign = "center";
-        gameCtx.fillText(
-          runWon ? "System stabilized" : "Noise overwhelmed the field",
-          game.width / 2,
-          game.height / 2 - 10
-        );
-        gameCtx.fillStyle = "#687064";
-        gameCtx.font = "500 15px Georgia, serif";
-        gameCtx.fillText(
-          "Press reset to run the experiment again",
-          game.width / 2,
-          game.height / 2 + 22
-        );
+        drawGameOverScreen();
       }
     }
 
@@ -1718,6 +1781,11 @@
     }
 
     game.addEventListener("keydown", (event) => {
+      if (event.key === "r" || event.key === "R") {
+        event.preventDefault();
+        resetGame();
+        return;
+      }
       const direction = keyDirection(event.key);
       if (direction) {
         event.preventDefault();
